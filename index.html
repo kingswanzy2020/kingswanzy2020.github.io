@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Case study: a three-tier application on a two-node Amazon EKS cluster with controller-provisioned DNS, TLS, storage and autoscaling. What was built, and what was actually verified.">
-<title>Production App on Amazon EKS</title>
+<meta name="description" content="Ahmed Tetteh — DevOps / Platform Engineer. Case studies in Kubernetes, Terraform, GitOps and observability.">
+<title>Ahmed Tetteh</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap">
 <style>
@@ -215,230 +215,82 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--accent); outline-of
   .spec div{padding-right:0}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ---------- landing page ---------- */
+.landing-hero{padding-block:56px 0}
+.lh-top{display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:12px}
+.lh-top h1{font-size:clamp(32px,6vw,46px)}
+.lh-top nav{display:flex; gap:14px; font-family:var(--mono); font-size:13px}
+.lh-top nav a{color:var(--ink-2); text-decoration:none; border-bottom:1px solid var(--rule-strong)}
+.lh-top nav a:hover{color:var(--accent); border-color:var(--accent)}
+.lh-tagline{font-size:19px; color:var(--ink-2); margin:14px 0 0}
+.lh-certs{display:flex; gap:10px; flex-wrap:wrap; margin-top:18px}
+.lh-certs span{font-family:var(--mono); font-size:11.5px; letter-spacing:.04em; color:var(--ink-2);
+  background:var(--surface-2); border:1px solid var(--rule); border-radius:3px; padding:6px 10px}
+
+.cards{margin-top:44px; display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:18px; padding-bottom:8px}
+.card{display:block; text-decoration:none; color:inherit; background:var(--surface); border:1px solid var(--rule);
+  border-left:3px solid var(--card-c); border-radius:3px; padding:20px 20px 18px; transition:border-color .15s}
+.card:hover{border-color:var(--card-c)}
+.card-eyebrow{font-family:var(--mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; color:var(--card-c); margin:0 0 10px}
+.card h2{font-family:var(--sans); font-weight:600; font-size:18px; line-height:1.3; margin:0 0 10px; color:var(--ink); text-wrap:balance}
+.card-desc{font-size:14.5px; line-height:1.5; color:var(--ink-2); margin:0 0 16px}
+.card-status{font-family:var(--mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:0}
+.landing-footer{margin-top:52px; padding-top:20px; border-top:1px solid var(--rule);
+  font-family:var(--mono); font-size:11.5px; line-height:1.9; color:var(--muted)}
+.landing-footer a{color:var(--ink-2)}
+@media (max-width:560px){.lh-top{flex-direction:column; align-items:flex-start}}
+
 </style>
 </head>
 <body>
-<div class="bar">
-  <div class="wrap">
-    <div class="who">
-      <b>Ahmed Tetteh</b>
-      <span>DevOps / Platform Engineer</span>
-      <span>CKA · AWS SAA</span>
-      <span>Daejeon, KR</span>
-    </div>
-    <nav>
-      <a href="https://github.com/kingswanzy2020">GitHub</a>
-      <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a>
-      <a href="mailto:kingsleyswanzy@gmail.com">Email</a>
-    </nav>
-  </div>
-</div>
-
 <div class="wrap">
 
-  <header class="mast">
-    <div class="col">
-      <p class="eyebrow">Case study — Kubernetes</p>
-      <h1>Production application on Amazon EKS</h1>
-      <p class="standfirst">I put a three-tier app on a two-node EKS cluster where the DNS record, the TLS certificate, the storage and the autoscaling were provisioned by controllers reacting to Kubernetes resources — not by me, clicking around in the AWS console.</p>
-
-      <div class="status">
-        <span class="chip">Decommissioned</span>
-        <p>I decommissioned the cluster after validation; the eksctl and Helm config reproduces it in under 30 minutes. The public endpoint isn't live anymore, and everything below is written in the past tense because the cluster is gone, not because it never existed.</p>
-      </div>
+  <header class="landing-hero">
+    <div class="lh-top">
+      <h1>Ahmed Tetteh</h1>
+      <nav>
+        <a href="https://github.com/kingswanzy2020">GitHub</a>
+        <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a>
+        <a href="mailto:kingsleyswanzy@gmail.com">Email</a>
+      </nav>
     </div>
-
-    <dl class="spec">
-      <div><dt>Platform</dt><dd>Amazon EKS, 2 nodes</dd></div>
-      <div><dt>Provisioned by</dt><dd>eksctl + Helm</dd></div>
-      <div><dt>Front door</dt><dd>Route 53 → ALB → Ingress</dd></div>
-      <div><dt>Certificates</dt><dd>cert-manager, DNS-01</dd></div>
-      <div><dt>State</dt><dd>PostgreSQL on EBS gp3</dd></div>
-      <div><dt>Observability</dt><dd>kube-prometheus-stack</dd></div>
-    </dl>
+    <p class="lh-tagline">DevOps / Platform Engineer &mdash; Kubernetes, Terraform, GitOps, AWS.</p>
+    <div class="lh-certs">
+      <span>CKA &mdash; Certified Kubernetes Administrator</span>
+      <span>AWS Certified Solutions Architect &ndash; Associate</span>
+    </div>
   </header>
 
-  <section>
-    <div class="col">
-      <h2>What it does</h2>
-      <p class="h2note">Summary</p>
-      <p>An nginx frontend, an httpbin API and a PostgreSQL database ran together on a two-node Amazon EKS cluster, reachable over HTTPS on a domain delegated to Route 53. The DNS record, the certificate, the load balancer and the persistent volume weren't created by hand — each one was provisioned by a controller reacting to a Kubernetes resource. The frontend scaled on measured CPU, the database survived rescheduling on an EBS volume, and every controller ran under its own IAM role instead of the node's.</p>
-    </div>
-  </section>
+  <div class="cards">
+    <a class="card" href="eks/" style="--card-c:var(--c-app)">
+      <p class="card-eyebrow">Kubernetes</p>
+      <h2>Production application on Amazon EKS</h2>
+      <p class="card-desc">A three-tier app on a two-node cluster &mdash; DNS, TLS, storage and autoscaling all provisioned by controllers, not by hand.</p>
+      <p class="card-status">Decommissioned</p>
+    </a>
+    <a class="card" href="terraform-gitops/" style="--card-c:var(--c-aws)">
+      <p class="card-eyebrow">Infrastructure as Code</p>
+      <h2>Terraform GitOps pipeline on AWS</h2>
+      <p class="card-desc">A five-module AWS stack where every change is a plan on PR, applied only on merge, authenticated via OIDC.</p>
+      <p class="card-status">Decommissioned</p>
+    </a>
+    <a class="card" href="argocd-pipeline/" style="--card-c:var(--c-ctl)">
+      <p class="card-eyebrow">Kubernetes / GitOps</p>
+      <h2>GitOps deployment pipeline with ArgoCD</h2>
+      <p class="card-desc">A cluster that reverts manual changes within seconds &mdash; Git is the only way anything gets in.</p>
+      <p class="card-status">Decommissioned</p>
+    </a>
+    <a class="card" href="delivery-scoreboard/" style="--card-c:var(--c-obs)">
+      <p class="card-eyebrow">Observability / Data</p>
+      <h2>DORA delivery scoreboard with DuckDB</h2>
+      <p class="card-desc">Four metrics computed in SQL; a fifth withheld until an AI classifier's labels pass an 18/20 accuracy gate.</p>
+      <p class="card-status">Local script</p>
+    </a>
+  </div>
 
-  <section>
-    <div class="col">
-      <h2>How it is wired</h2>
-      <p class="h2note">The mechanism</p>
-      <p><strong>Why does a controller write the DNS record instead of me?</strong> The domain was delegated from Porkbun to a Route 53 hosted zone, which made AWS authoritative for its records — that authority is the precondition for everything else here. From there, <code>external-dns</code> watches Ingress resources and writes the A record itself, the AWS Load Balancer Controller reads the same Ingress and provisions a real ALB with path-based routing (<code>/</code> to the frontend, <code>/api</code> to the API, both through one load balancer), and cert-manager requests the certificate. None of that involved opening the AWS console.</p>
-      <p><strong>Why DNS-01 instead of HTTP-01?</strong> HTTP-01 needs a working ALB to prove ownership of the domain the ALB is supposed to serve — a chicken-and-egg problem the first time anything gets provisioned. DNS-01 validates before the domain resolves to the cluster at all, and it leaves wildcard certificates available later if I need them.</p>
-      <p><strong>Why <code>WaitForFirstConsumer</code> on the volume?</strong> The PersistentVolumeClaim provisions an EBS gp3 volume through the CSI driver, and the StorageClass is set to <code>WaitForFirstConsumer</code>, so the volume isn't created until a pod has claimed it <span class="serif-em">and</span> been scheduled. That ordering is what keeps the volume in the same Availability Zone as the node that needs it — provisioning it any earlier risks landing it in the wrong AZ, where the pod could never reach it. <code>metrics-server</code> feeds a HorizontalPodAutoscaler that adds frontend replicas on measured CPU, and kube-prometheus-stack scrapes the cluster into Grafana. Grafana persistence was left off on purpose — the dashboards are declarative, and the cluster was never meant to outlive this project.</p>
-      <p><strong>Why does each controller get its own IAM role instead of using the node's?</strong> eksctl created the cluster with an OIDC provider, which is what makes IRSA possible in the first place: each controller's service account assumes its own role, so no controller borrows the node instance profile, and a compromised pod only inherits that one controller's permissions instead of everything the node can do. The application itself runs under scoped Roles in its own <code>app</code> namespace rather than anything cluster-wide.</p>
-    </div>
-
-    <figure class="fig">
-      <div class="fig-scroll">
-<svg viewBox="0 0 1244 700" role="img" aria-label="Architecture of the production EKS cluster: a browser resolves the host through Route 53 to an AWS load balancer, which routes / to an nginx frontend and /api to an httpbin API; the API queries PostgreSQL, whose PersistentVolumeClaim binds an EBS gp3 volume. Inside the cluster, the AWS Load Balancer Controller, cert-manager and external-dns each hold their own IAM role through IRSA and write the load balancer, the certificate and the DNS record. metrics-server feeds a HorizontalPodAutoscaler that scales the frontend, and kube-prometheus-stack scrapes every pod."><defs><marker id="mreq" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-app)"/></marker><marker id="mdata" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--dg-line)"/></marker><marker id="mctl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-ctl)"/></marker><marker id="mobs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-obs)"/></marker></defs><rect x="172" y="52" width="1052" height="598" rx="8" fill="none" stroke="var(--c-aws)" stroke-width="1.2" stroke-dasharray="6 5" opacity=".75"/><text x="190" y="44" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="10.5" letter-spacing="1.3" fill="var(--c-aws)">AWS ACCOUNT — ROUTE 53 · APPLICATION LOAD BALANCER · EBS · IAM</text><rect x="572" y="76" width="608" height="542" rx="8" fill="none" stroke="var(--c-ctl)" stroke-width="1.2" stroke-dasharray="6 5" opacity=".8"/><text x="590" y="69" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="10.5" letter-spacing="1.3" fill="var(--c-ctl)">EKS CLUSTER — 2 NODES · CREATED BY EKSCTL · OIDC PROVIDER ENABLED</text><rect x="594" y="220" width="390" height="262" rx="6" fill="none" stroke="var(--c-app)" stroke-width="1.1" stroke-dasharray="3 4" opacity=".8"/><text x="606" y="213" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="10" letter-spacing="1.2" fill="var(--c-app)">NAMESPACE app — SCOPED RBAC ROLES, NOT CLUSTER-ADMIN</text><g><rect x="16" y="286" width="136" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M21,286.65 h126 a4.4,4.4 0 0 1 4.4,4.4 v0 h-134.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="29" y="299" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><rect x="35" y="307" width="18" height="14" rx="2" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="35" y1="311.5" x2="53" y2="311.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="38" cy="309.3" r="0.9" fill="var(--c-neu)"/><!--ICON:browser--><!--<image href="assets/icons/browser.svg" x="31" y="301" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="67" y="319" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Browser</text><text x="29" y="345" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">the only client</text><rect x="29" y="353" width="41" height="15" rx="3" fill="var(--c-neu-s)"/><text x="35" y="363.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">HTTPS</text></g><g><rect x="200" y="286" width="152" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M205,286.65 h142 a4.4,4.4 0 0 1 4.4,4.4 v0 h-150.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="213" y="299" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><circle cx="228" cy="314" r="8.5" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="228" cy="314" rx="3.6" ry="8.5" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="219.5" y1="314" x2="236.5" y2="314" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:route53--><!--<image href="assets/icons/route53.svg" x="215" y="301" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="251" y="319" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Route 53</text><text x="213" y="345" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">hosted zone</text><rect x="213" y="353" width="88" height="15" rx="3" fill="var(--c-aws-s)"/><text x="219" y="363.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">authoritative</text></g><g><rect x="404" y="286" width="150" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M409,286.65 h140 a4.4,4.4 0 0 1 4.4,4.4 v0 h-148.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="417" y="299" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><line x1="424" y1="314" x2="431" y2="314" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="431" y1="314" x2="435" y2="308" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="438" cy="308" r="2.4" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="431" y1="314" x2="435" y2="314" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="438" cy="314" r="2.4" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="431" y1="314" x2="435" y2="320" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="438" cy="320" r="2.4" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:alb--><!--<image href="assets/icons/alb.svg" x="419" y="301" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="455" y="319" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">ALB</text><text x="417" y="345" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">from the Ingress</text><rect x="417" y="353" width="88" height="15" rx="3" fill="var(--c-aws-s)"/><text x="423" y="363.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">TLS ends here</text></g><g><rect x="592" y="96" width="186" height="72" rx="5" fill="var(--dg-box)" stroke="var(--c-ctl)" stroke-width="1.3"/><path d="M597,96.65 h176 a4.4,4.4 0 0 1 4.4,4.4 v0 h-184.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-ctl)"/><rect x="605" y="109" width="30" height="30" rx="6" fill="var(--c-ctl-s)"/><circle cx="620" cy="124" r="4" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="620" cy="124" r="8" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2.6 2.6"/><!--ICON:aws-load-balancer-controller--><!--<image href="assets/icons/aws-load-balancer-controller.svg" x="607" y="111" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="643" y="129" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">AWS LB Controller</text><text x="605" y="155" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">watches Ingress · IRSA role</text></g><g><rect x="798" y="96" width="156" height="72" rx="5" fill="var(--dg-box)" stroke="var(--c-ctl)" stroke-width="1.3"/><path d="M803,96.65 h146 a4.4,4.4 0 0 1 4.4,4.4 v0 h-154.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-ctl)"/><rect x="811" y="109" width="30" height="30" rx="6" fill="var(--c-ctl-s)"/><rect x="819.5" y="123" width="13" height="9.5" rx="1.8" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M822.2,123 v-3.2 a3.8,3.8 0 0 1 7.6,0 v3.2" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:cert-manager--><!--<image href="assets/icons/cert-manager.svg" x="813" y="111" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="849" y="129" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">cert-manager</text><text x="811" y="155" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">DNS-01 · IRSA role</text></g><g><rect x="974" y="96" width="160" height="72" rx="5" fill="var(--dg-box)" stroke="var(--c-ctl)" stroke-width="1.3"/><path d="M979,96.65 h150 a4.4,4.4 0 0 1 4.4,4.4 v0 h-158.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-ctl)"/><rect x="987" y="109" width="30" height="30" rx="6" fill="var(--c-ctl-s)"/><circle cx="1002" cy="124" r="8.5" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1002" cy="124" rx="3.6" ry="8.5" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="993.5" y1="124" x2="1010.5" y2="124" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:external-dns--><!--<image href="assets/icons/external-dns.svg" x="989" y="111" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="1025" y="129" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">external-dns</text><text x="987" y="155" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">A records · IRSA role</text></g><g><rect x="610" y="248" width="164" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-app)" stroke-width="1.3"/><path d="M615,248.65 h154 a4.4,4.4 0 0 1 4.4,4.4 v0 h-162.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-app)"/><rect x="623" y="261" width="30" height="30" rx="6" fill="var(--c-app-s)"/><rect x="630" y="268" width="16" height="7" rx="1.5" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><rect x="630" y="278" width="16" height="7" rx="1.5" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="633.5" cy="271.5" r="0.9" fill="var(--c-app)"/><circle cx="633.5" cy="281.5" r="0.9" fill="var(--c-app)"/><!--ICON:nginx--><!--<image href="assets/icons/nginx.svg" x="625" y="263" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="661" y="281" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">nginx frontend</text><text x="623" y="307" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">presentation tier</text><rect x="623" y="315" width="70" height="15" rx="3" fill="var(--c-app-s)"/><text x="629" y="325.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-app)">HPA target</text></g><g><rect x="610" y="364" width="164" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-app)" stroke-width="1.3"/><path d="M615,364.65 h154 a4.4,4.4 0 0 1 4.4,4.4 v0 h-162.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-app)"/><rect x="623" y="377" width="30" height="30" rx="6" fill="var(--c-app-s)"/><polyline points="635,386 630,392 635,398" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="641,386 646,392 641,398" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="639" y1="385" x2="637" y2="399" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:httpbin--><!--<image href="assets/icons/httpbin.svg" x="625" y="379" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="661" y="397" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">httpbin API</text><text x="623" y="423" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">application tier</text><rect x="623" y="431" width="64" height="15" rx="3" fill="var(--c-app-s)"/><text x="629" y="441.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-app)">path /api</text></g><g><rect x="806" y="364" width="160" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-app)" stroke-width="1.3"/><path d="M811,364.65 h150 a4.4,4.4 0 0 1 4.4,4.4 v0 h-158.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-app)"/><rect x="819" y="377" width="30" height="30" rx="6" fill="var(--c-app-s)"/><ellipse cx="834" cy="387" rx="7.5" ry="3" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M826.5,387 v10 a7.5,3 0 0 0 15,0 v-10" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M826.5,392 a7.5,3 0 0 0 15,0" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:postgresql--><!--<image href="assets/icons/postgresql.svg" x="821" y="379" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="857" y="397" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">PostgreSQL</text><text x="819" y="423" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">data tier</text><rect x="819" y="431" width="64" height="15" rx="3" fill="var(--c-app-s)"/><text x="825" y="441.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-app)">PVC bound</text></g><g><rect x="1006" y="364" width="130" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M1011,364.65 h120 a4.4,4.4 0 0 1 4.4,4.4 v0 h-128.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="1019" y="377" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><rect x="1026" y="385" width="16" height="14" rx="2" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="1034" cy="392" r="3.4" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="1034" cy="392" r="0.9" fill="var(--c-aws)"/><!--ICON:ebs--><!--<image href="assets/icons/ebs.svg" x="1021" y="379" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="1057" y="397" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">EBS gp3</text><text x="1019" y="423" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">CSI driver</text><rect x="1019" y="431" width="41" height="15" rx="3" fill="var(--c-aws-s)"/><text x="1025" y="441.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">in-AZ</text></g><g><rect x="590" y="512" width="160" height="72" rx="5" fill="var(--dg-box)" stroke="var(--c-obs)" stroke-width="1.3"/><path d="M595,512.65 h150 a4.4,4.4 0 0 1 4.4,4.4 v0 h-158.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-obs)"/><rect x="603" y="525" width="30" height="30" rx="6" fill="var(--c-obs-s)"/><line x1="612" y1="547" x2="612" y2="542" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="617" y1="547" x2="617" y2="538" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="622" y1="547" x2="622" y2="534" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="609" y1="548.5" x2="627" y2="548.5" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:metrics-server--><!--<image href="assets/icons/metrics-server.svg" x="605" y="527" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="641" y="545" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">metrics-server</text><text x="603" y="571" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">metrics.k8s.io</text></g><g><rect x="790" y="512" width="172" height="72" rx="5" fill="var(--dg-box)" stroke="var(--c-obs)" stroke-width="1.3"/><path d="M795,512.65 h162 a4.4,4.4 0 0 1 4.4,4.4 v0 h-170.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-obs)"/><rect x="803" y="525" width="30" height="30" rx="6" fill="var(--c-obs-s)"/><line x1="813" y1="547" x2="813" y2="533" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="810,536 813,532.5 816,536" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="823" y1="533" x2="823" y2="547" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="820,544 823,547.5 826,544" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:kubernetes--><!--<image href="assets/icons/kubernetes.svg" x="805" y="527" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="841" y="545" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">HPA</text><text x="803" y="571" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">min 2 · max 10 · 50% CPU</text></g><g><rect x="982" y="512" width="186" height="72" rx="5" fill="var(--dg-box)" stroke="var(--c-obs)" stroke-width="1.3"/><path d="M987,512.65 h176 a4.4,4.4 0 0 1 4.4,4.4 v0 h-184.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-obs)"/><rect x="995" y="525" width="30" height="30" rx="6" fill="var(--c-obs-s)"/><polyline points="1002,545 1007,538 1011,542 1018,534" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="1001.5" y1="548" x2="1018.5" y2="548" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:grafana--><!--<image href="assets/icons/grafana.svg" x="997" y="527" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="1033" y="545" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Prometheus</text><text x="995" y="571" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">+ Grafana · kube-prom-stack</text></g><line x1="152" y1="330" x2="196" y2="330" stroke="var(--c-app)" stroke-width="1.6" marker-end="url(#mreq)" fill="none"/><line x1="352" y1="330" x2="400" y2="330" stroke="var(--c-app)" stroke-width="1.6" marker-end="url(#mreq)" fill="none"/><line x1="554" y1="314" x2="606" y2="296" stroke="var(--c-app)" stroke-width="1.6" marker-end="url(#mreq)" fill="none"/><line x1="554" y1="350" x2="606" y2="396" stroke="var(--c-app)" stroke-width="1.6" marker-end="url(#mreq)" fill="none"/><line x1="774" y1="408" x2="802" y2="408" stroke="var(--dg-line)" stroke-width="1.6" marker-end="url(#mdata)" fill="none"/><line x1="966" y1="408" x2="1002" y2="408" stroke="var(--dg-line)" stroke-width="1.6" marker-end="url(#mdata)" fill="none"/><polyline points="1054,168 1054,180 240,180 240,282" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><polyline points="876,168 876,190 312,190 312,282" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><polyline points="685,168 685,200 479,200 479,282" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><line x1="750" y1="548" x2="786" y2="548" stroke="var(--c-obs)" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#mobs)" fill="none"/><polyline points="790,548 582,548 582,236 696,236 696,244" stroke="var(--c-obs)" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#mobs)" fill="none"/><line x1="986" y1="518" x2="970" y2="488" stroke="var(--c-obs)" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#mobs)" fill="none"/><circle cx="174" cy="330" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="174" y="333.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">1</text><circle cx="376" cy="330" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="376" y="333.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">2</text><circle cx="583" cy="301" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="583" y="304.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">3</text><circle cx="583" cy="375" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="583" y="378.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">4</text><circle cx="788" cy="408" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="788" y="411.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">5</text><circle cx="984" cy="408" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="984" y="411.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">6</text><circle cx="240" cy="244" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="240" y="247.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">7</text><circle cx="312" cy="250" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="312" y="253.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">8</text><circle cx="479" cy="248" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="479" y="251.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">9</text><circle cx="768" cy="548" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="768" y="551.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">10</text><circle cx="582" cy="470" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="582" y="473.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">11</text><circle cx="1002" cy="500" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="1002" y="503.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">12</text></svg>
-      </div>
-      <figcaption>The cluster as it ran. Arrows 7, 8 and 9 are controllers inside the cluster reaching out to the AWS API under their own IAM role — that's the part of this project I actually care about, and the reason nothing here got clicked in a console.</figcaption>
-    </figure>
-
-    <div class="wiring">
-      <div class="panel">
-        <h4>How the components communicate</h4>
-        <table class="wire">
-          <thead><tr><th>No</th><th>From → to</th><th>Mechanism</th><th>What happens</th></tr></thead>
-          <tbody><tr><td>1</td><td class="ft">Browser → Route 53</td><td class="mech">DNS</td><td>Resolves the host to the load balancer. The record is there because external-dns wrote it, not because anyone typed it.</td></tr><tr><td>2</td><td class="ft">Route 53 → ALB</td><td class="mech">ALIAS record</td><td>Points at the load balancer. TLS terminates here, on the certificate cert-manager obtained.</td></tr><tr><td>3</td><td class="ft">ALB → nginx frontend</td><td class="mech">Ingress rule, path /</td><td>The load balancer controller registered this target from the Ingress spec.</td></tr><tr><td>4</td><td class="ft">ALB → httpbin API</td><td class="mech">Ingress rule, path /api</td><td>A second rule on the same load balancer — one front door, two backends, no CORS.</td></tr><tr><td>5</td><td class="ft">httpbin API → PostgreSQL</td><td class="mech">in-cluster Service</td><td>The application tier queries the data tier over cluster DNS.</td></tr><tr><td>6</td><td class="ft">PostgreSQL → EBS gp3</td><td class="mech">PVC · EBS CSI driver</td><td>WaitForFirstConsumer holds provisioning until the pod is scheduled, so the volume is created in that node&#39;s AZ.</td></tr><tr><td>7</td><td class="ft">external-dns → Route 53</td><td class="mech">AWS API · IRSA role</td><td>Writes the A record for the Ingress host into the hosted zone.</td></tr><tr><td>8</td><td class="ft">cert-manager → Route 53</td><td class="mech">AWS API · IRSA role</td><td>Writes the DNS-01 challenge record; the issued certificate is then attached to the ALB listener.</td></tr><tr><td>9</td><td class="ft">AWS LB Controller → ALB</td><td class="mech">AWS API · IRSA role</td><td>Creates the load balancer and its listener rules from the Ingress resource.</td></tr><tr><td>10</td><td class="ft">metrics-server → HPA</td><td class="mech">metrics.k8s.io</td><td>Supplies per-pod CPU, measured against the pod&#39;s request.</td></tr><tr><td>11</td><td class="ft">HPA → nginx frontend</td><td class="mech">scale subresource</td><td>Adds replicas above the 50% target. Observed 2 → 3 under load; the configured ceiling is 10.</td></tr><tr><td>12</td><td class="ft">Prometheus → every pod</td><td class="mech">scrape</td><td>kube-prometheus-stack scrapes all namespaces into Grafana.</td></tr></tbody>
-        </table>
-      </div>
-      <div>
-        <div class="panel">
-          <h4>Legend</h4>
-          <div class="key">
-            <div><i style="background:var(--c-aws)"></i><span><b>AWS-managed</b>Route 53, the ALB, the EBS volume</span></div>
-            <div><i style="background:var(--c-ctl)"></i><span><b>Cluster control plane</b>each with its own IAM role</span></div>
-            <div><i style="background:var(--c-app)"></i><span><b>Application workload</b>in the app namespace</span></div>
-            <div><i style="background:var(--c-obs)"></i><span><b>Scale &amp; observability</b>metrics, HPA, Prometheus</span></div>
-            <div><u style="border-color:var(--c-app)"></u><span><b>Request path</b>browser to backend</span></div>
-            <div><u style="border-color:var(--rule-strong)"></u><span><b>Data path</b>query and persistence</span></div>
-            <div><u style="border-color:var(--c-ctl)"></u><span><b>AWS API call</b>made by a controller, via IRSA</span></div>
-            <div><u style="border-color:var(--c-obs); border-top-style:dashed"></u><span><b>Metrics &amp; scaling</b>measured, not configured</span></div>
-          </div>
-        </div>
-        <div class="panel">
-          <h4>What was reachable</h4>
-          <p class="surface"><b>Public —</b> the ALB, HTTPS only.<br>
-          <b>Internal —</b> frontend, API, PostgreSQL and every controller. None of them had a public address.<br>
-          <b>Now —</b> nothing. The load balancer, the hosted-zone record and the volume all got deleted with the cluster.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <div class="col">
-      <h2>What I verified, and how</h2>
-      <p class="h2note">Evidence, separated from design intent</p>
-      <p>Building something and being able to prove it works are different claims, so I've kept them separate below. <strong>Measured</strong> means I created the condition myself and recorded what happened. <strong>Observed</strong> means I looked at the running cluster and saw the state it was already in. <strong>By design</strong> means the configuration guarantees it, but I didn't run a test against it — better to say that plainly than dress it up as a result.</p>
-    </div>
-
-    <div class="ledger">
-
-      <div class="v-row measured">
-        <div class="v-tag">Measured</div>
-        <div>
-          <h3>The frontend autoscaled on real CPU, then scaled back down</h3>
-          <p>The HorizontalPodAutoscaler was set to a floor of 2 replicas, a ceiling of 10, and a 50% CPU target measured against the pod's request. Under generated load it added a third replica once frontend CPU hit 60%, and dropped back to 2 replicas once the load stopped. The ceiling of 10 is just the configured limit — 3 is as far as the test actually pushed it.</p>
-          <p class="v-method"><b>Method</b> Generated load against the frontend, then watched <code>kubectl get hpa</code> through the scale-up and scale-down, cross-checking per-pod CPU in Grafana to confirm the third replica was actually taking traffic.</p>
-        </div>
-      </div>
-
-      <div class="v-row measured">
-        <div class="v-tag">Measured</div>
-        <div>
-          <h3>TLS was issued end-to-end without me touching anything</h3>
-          <p>cert-manager completed a DNS-01 challenge against the Route 53 zone, and the <code>Certificate</code> resource reported <code>READY=True</code> after 38 minutes. Renewal runs through the same controller loop, so it doesn't depend on me remembering to do anything.</p>
-          <p class="v-method"><b>Method</b> Watched the <code>Certificate</code>, <code>CertificateRequest</code> and <code>Order</code> resources through issuance to <code>READY=True</code>. Elapsed time came from the resource timestamps, not a guess.</p>
-        </div>
-      </div>
-
-      <div class="v-row observed">
-        <div class="v-tag">Observed</div>
-        <div>
-          <h3>Nothing got clicked in the AWS console after the cluster was created</h3>
-          <p>After <code>eksctl create cluster</code>, the DNS records, the certificate and the load balancer were all created by controllers responding to Kubernetes resources. I held to that as a rule for the whole build, mostly because infrastructure that only exists because someone remembers which buttons they clicked can't be rebuilt in 30 minutes — and reproducibility was the actual point of the exercise.</p>
-          <p class="v-method"><b>Method</b> Traced the ALB, the Route 53 A records and the certificate each back to the Kubernetes resource that caused them — the Ingress, the external-dns annotation, the <code>Certificate</code> object.</p>
-        </div>
-      </div>
-
-      <div class="v-row design">
-        <div class="v-tag">By design</div>
-        <div>
-          <h3>The data tier is bound to an EBS volume so it outlives the pod — untested</h3>
-          <p>PostgreSQL claims an EBS gp3 volume through the CSI driver, and the StorageClass binds <code>WaitForFirstConsumer</code>, so the volume only gets created once a pod has claimed it and been scheduled — which puts it in the same Availability Zone as its node instead of stranding it somewhere the pod can never reach. That's what the configuration guarantees. I never actually deleted the pod and re-queried the data, so what I'm claiming here is the binding, not the recovery.</p>
-          <p class="v-method"><b>Method</b> Confirmed PVC binding and AZ placement. No restart test was run — persistence across rescheduling is an expectation from how the volume is bound, not something I measured directly.</p>
-        </div>
-      </div>
-
-      <div class="v-row design">
-        <div class="v-tag">By design</div>
-        <div>
-          <h3>Each controller held its own IAM role, not the node's</h3>
-          <p>The cluster was created with an OIDC provider, and IRSA binds the AWS Load Balancer Controller, cert-manager and external-dns each to their own service account and IAM role. In theory that means a compromised controller pod only inherits that controller's permissions, not everything attached to the node. That's a property of how the roles and trust policies are written — I didn't try to break it.</p>
-          <p class="v-method"><b>Method</b> Reviewed role and trust-policy configuration per service account. Not adversarially tested.</p>
-        </div>
-      </div>
-
-      <div class="v-row design">
-        <div class="v-tag">By design</div>
-        <div>
-          <h3>Rolling updates were gated on readiness probes</h3>
-          <p>The frontend and API expose liveness and readiness on different paths, since nginx and httpbin answer health checks differently. Liveness restarts a container that's wedged; readiness keeps a pod out of the Service until it can actually serve, which is the actual mechanism that stops a rolling update from dropping requests. I didn't measure request loss across an actual rollout, so this is a property of the deployment spec, not a zero-downtime number I can point to.</p>
-          <p class="v-method"><b>Method</b> Reviewed probe configuration and rollout behavior. No load was held across a rollout to count failed requests.</p>
-        </div>
-      </div>
-
-    </div>
-    <p class="legend">Six claims total. Two measured, one observed, three stated as design properties rather than dressed up as results.</p>
-  </section>
-
-  <section>
-    <div class="col">
-      <h2>Proof</h2>
-      <p class="h2note">Captured from the running cluster</p>
-    </div>
-    <div class="shots">
-      <figure>
-        <img loading="lazy" alt="kubectl output showing the HorizontalPodAutoscaler scaling the frontend from 2 to 3 replicas at 60% CPU against a 50% target" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/kubernetes/production-app-eks/Screenshots/Screenshot%20from%202026-08-15%2014-54-55.png">
-        <figcaption>The HPA adding a replica: 60% observed CPU against a 50% target.</figcaption>
-      </figure>
-      <figure>
-        <img loading="lazy" alt="cert-manager Certificate resource reporting READY True" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/kubernetes/production-app-eks/Screenshots/Screenshot%20from%202026-08-15%2010-03-34.png">
-        <figcaption>The <code>Certificate</code> reaching <code>READY=True</code> after the DNS-01 challenge.</figcaption>
-      </figure>
-      <figure>
-        <img loading="lazy" alt="Grafana Kubernetes compute resources dashboard showing cluster-wide CPU and memory" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/kubernetes/production-app-eks/Screenshots/Screenshot%20from%202026-08-15%2013-32-32.png">
-        <figcaption>kube-prometheus-stack: CPU and memory across all namespaces.</figcaption>
-      </figure>
-      <figure>
-        <img loading="lazy" alt="Per-pod CPU usage graph showing a third frontend replica appearing during the load test" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/kubernetes/production-app-eks/Screenshots/Screenshot%20from%202026-08-15%2015-04-53.png">
-        <figcaption>Per-pod CPU during the load test — the third replica appearing and taking its share.</figcaption>
-      </figure>
-    </div>
-  </section>
-
-  <section>
-    <div class="col">
-      <h2>What actually broke</h2>
-      <p class="h2note">Two failures worth keeping</p>
-      <div class="broke">
-        <article>
-          <h3>PostgreSQL crash-looped on a brand-new EBS volume</h3>
-          <p><code>initdb</code> refused to run because <code>/var/lib/postgresql/data</code> "exists but is not empty." Turns out the EBS filesystem root always carries a <code>lost+found</code> directory, and Postgres won't initialize into a directory that isn't empty. Fixed by pointing the data directory at a subdirectory of the mount point instead of the mount point itself.</p>
-        </article>
-        <article>
-          <h3>The ALB served nothing while the controller logged <code>no certificate found for host</code> on every reconcile</h3>
-          <p>The Ingress itself was fine. The certificate just hadn't been issued into the right namespace yet. Good reminder that with controller-driven infrastructure, "the resource exists" and "the resource is ready" are two different states — and the reconcile loop will keep telling you which one you're in, once a second, until you fix it.</p>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <div class="col">
-      <h2>Source</h2>
-      <p class="h2note">Everything on this page came from here</p>
-      <div class="src">
-        <p>The eksctl cluster config, the IAM policies for the load balancer controller, cert-manager and external-dns, and the Helm chart covering all three tiers live here: <a href="https://github.com/kingswanzy2020/production-app-eks">kingswanzy2020/production-app-eks</a>.</p>
-        <pre>git clone https://github.com/kingswanzy2020/production-app-eks.git</pre>
-      </div>
-      <p class="stack"><b>Stack</b><br>Amazon EKS · eksctl · IRSA / OIDC · AWS Load Balancer Controller · Ingress &amp; path-based routing · Route 53 · cert-manager (DNS-01) · external-dns · EBS CSI driver · PersistentVolumeClaims · RBAC &amp; namespace isolation · Helm chart authoring · liveness / readiness probes · rolling updates · HPA &amp; metrics-server · Prometheus · Grafana · load testing</p>
-    </div>
-  </section>
-
-  <footer class="col">
-    Ahmed Tetteh · <a href="mailto:kingsleyswanzy@gmail.com">kingsleyswanzy@gmail.com</a> · <a href="https://github.com/kingswanzy2020">github.com/kingswanzy2020</a> · <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a><br>
-    Static HTML and CSS. No JavaScript, no framework, no build step for the page itself.
+  <footer class="landing-footer">
+    Ahmed Tetteh &middot; <a href="mailto:kingsleyswanzy@gmail.com">kingsleyswanzy@gmail.com</a> &middot; <a href="https://github.com/kingswanzy2020">github.com/kingswanzy2020</a> &middot; <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a>
   </footer>
 
 </div>
