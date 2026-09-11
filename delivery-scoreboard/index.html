@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Case study: a DORA delivery scoreboard that computes four delivery metrics from timestamps in SQL, and withholds the fifth, rework rate, until AI-generated labels reproduce 18 of 20 hand-audited judgments.">
+<title>DORA Scoreboard with DuckDB</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@500;600&family=IBM+Plex+Serif:ital,wght@0,500;1,400&display=swap">
+<style>
+:root{
+  --ground:#EEF0F1; --surface:#FFFFFF; --surface-2:#F5F8F8;
+  --ink:#11181B; --ink-2:#3B464C; --muted:#6A767D;
+  --rule:#D3D9DC; --rule-strong:#B5BEC3;
+  --accent:#1B5E58; --accent-soft:#DDEBE8;
+  --flag:#8A5512; --flag-soft:#F7EBD9;
+  --dg-line:#6A767D; --dg-text:#3B464C; --dg-box:#FFFFFF; --dg-stroke:#B5BEC3;
+  --c-aws:#A8620F; --c-aws-s:#F7ECDD; --c-ctl:#2E5FC4; --c-ctl-s:#E3EAFA;
+  --c-app:#1B7A4F; --c-app-s:#DFEFE7; --c-obs:#1B5E58; --c-obs-s:#DDEBE8;
+  --c-neu:#5C686F; --c-neu-s:#EAEEEF;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --serif:"IBM Plex Serif",Georgia,"Times New Roman",serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+  --ground:#0C1214; --surface:#131B1E; --surface-2:#182226;
+  --ink:#E7ECEC; --ink-2:#BFC9CC; --muted:#8A989D;
+  --rule:#223034; --rule-strong:#32444A;
+  --accent:#66C6B8; --accent-soft:#12302D;
+  --flag:#E0A959; --flag-soft:#2E220E;
+  --dg-line:#8A989D; --dg-text:#BFC9CC; --dg-box:#182226; --dg-stroke:#32444A;
+  --c-aws:#E0A959; --c-aws-s:#2E2210; --c-ctl:#7BA3EE; --c-ctl-s:#17243D;
+  --c-app:#4FC28C; --c-app-s:#102A1F; --c-obs:#66C6B8; --c-obs-s:#12302D;
+  --c-neu:#9AA7AD; --c-neu-s:#1C262A;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0C1214; --surface:#131B1E; --surface-2:#182226;
+  --ink:#E7ECEC; --ink-2:#BFC9CC; --muted:#8A989D;
+  --rule:#223034; --rule-strong:#32444A;
+  --accent:#66C6B8; --accent-soft:#12302D;
+  --flag:#E0A959; --flag-soft:#2E220E;
+  --dg-line:#8A989D; --dg-text:#BFC9CC; --dg-box:#182226; --dg-stroke:#32444A;
+  --c-aws:#E0A959; --c-aws-s:#2E2210; --c-ctl:#7BA3EE; --c-ctl-s:#17243D;
+  --c-app:#4FC28C; --c-app-s:#102A1F; --c-obs:#66C6B8; --c-obs-s:#12302D;
+  --c-neu:#9AA7AD; --c-neu-s:#1C262A;
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--ground); color:var(--ink);
+  font-family:var(--serif); font-size:17px; line-height:1.62;
+  margin:0; padding-block:0 64px;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1060px; margin-inline:auto; padding-inline:24px}
+.col{max-width:68ch; margin-inline:auto}
+
+/* ---------- identity bar ---------- */
+.bar{
+  border-bottom:1px solid var(--rule); background:var(--surface);
+  font-family:var(--mono); font-size:12px; letter-spacing:.02em;
+}
+.bar .wrap{display:flex; flex-wrap:wrap; gap:8px 20px; align-items:baseline;
+  padding-block:13px; justify-content:space-between}
+.bar b{font-family:var(--sans); font-weight:600; font-size:13.5px; letter-spacing:0}
+.bar .who{display:flex; flex-wrap:wrap; gap:8px 14px; align-items:baseline}
+.bar .who span{color:var(--muted)}
+.bar nav{display:flex; gap:14px}
+.bar a{color:var(--ink-2); text-decoration:none; border-bottom:1px solid var(--rule-strong)}
+.bar a:hover{color:var(--accent); border-color:var(--accent)}
+
+/* ---------- masthead ---------- */
+header.mast{padding-block:52px 0}
+.eyebrow{font-family:var(--mono); font-size:11.5px; text-transform:uppercase;
+  letter-spacing:.13em; color:var(--muted); margin:0 0 14px}
+h1{font-family:var(--sans); font-weight:600; font-size:clamp(30px,5.2vw,42px);
+  line-height:1.14; letter-spacing:-.018em; margin:0; text-wrap:balance}
+.standfirst{font-size:19px; color:var(--ink-2); margin:18px 0 0}
+
+/* ---------- status ---------- */
+.status{
+  margin:30px 0 0; padding:16px 18px;
+  background:var(--flag-soft); border-left:3px solid var(--flag);
+  font-size:15.5px; line-height:1.55;
+}
+.status .chip{
+  display:inline-block; font-family:var(--mono); font-size:11px; font-weight:500;
+  text-transform:uppercase; letter-spacing:.11em; color:var(--flag);
+  margin-right:10px;
+}
+.status p{margin:6px 0 0; color:var(--ink-2)}
+
+/* ---------- spec sheet ---------- */
+.spec{
+  margin:34px 0 0; border-top:1px solid var(--rule-strong); border-bottom:1px solid var(--rule);
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr));
+}
+.spec div{padding:14px 18px 15px 0; border-bottom:1px solid var(--rule)}
+.spec dt{font-family:var(--mono); font-size:10.5px; text-transform:uppercase;
+  letter-spacing:.12em; color:var(--muted); margin-bottom:5px}
+.spec dd{margin:0; font-family:var(--sans); font-size:14.5px; font-weight:500;
+  line-height:1.4; color:var(--ink)}
+
+/* ---------- sections ---------- */
+section{padding-block:44px 0}
+h2{font-family:var(--sans); font-weight:600; font-size:22px; letter-spacing:-.01em;
+  margin:0 0 4px; text-wrap:balance}
+.h2note{font-family:var(--mono); font-size:11.5px; text-transform:uppercase;
+  letter-spacing:.12em; color:var(--muted); margin:0 0 20px}
+p{margin:0 0 17px}
+p:last-child{margin-bottom:0}
+code{font-family:var(--mono); font-size:.85em; background:var(--surface-2);
+  border-radius:2px; padding:.5px 4px; color:var(--ink)}
+a{color:var(--accent)}
+strong{font-weight:600; color:var(--ink)}
+.serif-em{font-style:italic}
+
+/* ---------- figure ---------- */
+figure{margin:0}
+.fig{margin-top:26px}
+.fig-scroll{overflow-x:auto; background:var(--surface);
+  border:1px solid var(--rule); border-radius:3px; padding:20px 16px}
+.fig-scroll svg{display:block; width:100%; min-width:1044px; max-width:none; height:auto}
+@media (min-width:1240px){ .fig{margin-inline:-82px} }
+
+/* ---------- wiring table + panels ---------- */
+.wiring{display:grid; grid-template-columns:minmax(0,1fr) 292px; gap:20px; margin-top:20px}
+.panel{background:var(--surface); border:1px solid var(--rule); border-radius:3px; padding:16px 18px}
+.panel h4{font-family:var(--mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.12em;
+  color:var(--muted); font-weight:500; margin:0 0 12px}
+.panel+.panel{margin-top:20px}
+table.wire{width:100%; border-collapse:collapse; font-family:var(--mono); font-size:11.5px;
+  line-height:1.5; font-variant-numeric:tabular-nums}
+table.wire th{text-align:left; font-weight:500; font-size:9.8px; text-transform:uppercase;
+  letter-spacing:.11em; color:var(--muted); padding:0 12px 8px 0; border-bottom:1px solid var(--rule)}
+table.wire td{padding:9px 12px 9px 0; border-bottom:1px solid var(--rule); vertical-align:top; color:var(--ink-2)}
+table.wire tr:last-child td{border-bottom:none}
+table.wire td:first-child{color:var(--muted); width:26px; padding-right:8px}
+table.wire td.ft{color:var(--ink); white-space:nowrap}
+table.wire td.mech{color:var(--muted); white-space:nowrap}
+.key{display:grid; gap:9px; font-family:var(--mono); font-size:11px; color:var(--ink-2); line-height:1.45}
+.key div{display:grid; grid-template-columns:30px 1fr; gap:10px; align-items:start}
+.key i{display:block; height:9px; border-radius:2px; margin-top:3px}
+.key u{display:block; height:0; border-top-width:2px; border-top-style:solid; margin-top:7px}
+.key span b{display:block; color:var(--ink); font-weight:500}
+.surface{font-family:var(--mono); font-size:11.5px; line-height:1.7; color:var(--ink-2); margin:0}
+.surface b{color:var(--ink); font-weight:500}
+@media (max-width:900px){ .wiring{grid-template-columns:1fr} }
+figcaption{font-family:var(--mono); font-size:12px; line-height:1.55; color:var(--muted);
+  margin-top:11px}
+
+/* ---------- verification ledger ---------- */
+.ledger{margin-top:8px; border-top:1px solid var(--rule-strong)}
+.v-row{
+  display:grid; grid-template-columns:118px 1fr; gap:0 22px;
+  padding:20px 0 20px 16px; border-bottom:1px solid var(--rule);
+  border-left:2px solid var(--rule-strong);
+}
+.v-row.measured{border-left-color:var(--accent)}
+.v-row.observed{border-left-color:var(--ink-2)}
+.v-row.design{border-left-color:var(--rule-strong)}
+.v-tag{font-family:var(--mono); font-size:10.5px; font-weight:500; text-transform:uppercase;
+  letter-spacing:.1em; color:var(--muted); padding-top:5px}
+.v-row.measured .v-tag{color:var(--accent)}
+.v-row.observed .v-tag{color:var(--ink-2)}
+.v-row h3{font-family:var(--sans); font-weight:600; font-size:16.5px; line-height:1.35;
+  margin:0 0 8px; letter-spacing:-.005em}
+.v-row p{font-size:16px; margin:0 0 10px}
+.v-method{font-family:var(--mono); font-size:12.5px; line-height:1.6;
+  color:var(--ink-2); margin:0 !important;
+  padding:9px 12px; background:var(--surface-2); border:1px solid var(--rule); border-radius:2px}
+.v-method code{background:none; padding:0; font-size:1em; color:var(--ink)}
+.v-method b{color:var(--muted); font-weight:500; text-transform:uppercase;
+  letter-spacing:.09em; font-size:10.5px; margin-right:8px}
+.legend{font-family:var(--mono); font-size:11.5px; color:var(--muted);
+  margin:16px 0 0; line-height:1.7}
+
+/* ---------- proof grid ---------- */
+.shots{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+  gap:24px; margin-top:24px}
+.shots figure{background:var(--surface); border:1px solid var(--rule);
+  border-radius:3px; padding:10px 10px 0}
+.shots img{display:block; width:100%; height:auto; border:1px solid var(--rule); border-radius:2px}
+.shots figcaption{padding:0 2px 12px}
+
+/* ---------- broke ---------- */
+.broke{margin-top:22px; display:grid; gap:22px}
+.broke article{border-left:2px solid var(--rule-strong); padding-left:16px}
+.broke h3{font-family:var(--mono); font-size:13.5px; font-weight:500; line-height:1.5;
+  margin:0 0 9px; color:var(--ink)}
+
+/* ---------- source ---------- */
+.src{margin-top:24px; padding:18px 20px; background:var(--surface);
+  border:1px solid var(--rule); border-radius:3px}
+.src p{font-size:16px}
+.src p code{background:none;padding:0}
+.src pre{font-family:var(--mono); font-size:12.5px; margin:14px 0 0; padding:11px 13px;
+  background:var(--surface-2); border:1px solid var(--rule); border-radius:2px;
+  overflow-x:auto; color:var(--ink-2)}
+.stack{font-family:var(--mono); font-size:12px; line-height:2; color:var(--muted);
+  margin-top:22px; padding-top:18px; border-top:1px solid var(--rule)}
+.stack b{color:var(--ink-2); font-weight:400}
+
+footer{margin-top:52px; padding-top:20px; border-top:1px solid var(--rule);
+  font-family:var(--mono); font-size:11.5px; line-height:1.9; color:var(--muted)}
+footer a{color:var(--ink-2)}
+
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+@media (max-width:560px){
+  body{font-size:16px}
+  .v-row{grid-template-columns:1fr; gap:10px; padding-left:14px}
+  .v-tag{padding-top:0}
+  .spec div{padding-right:0}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="bar">
+  <div class="wrap">
+    <div class="who">
+      <b>Ahmed Tetteh</b>
+      <span>DevOps / Platform Engineer</span>
+      <span>CKA · AWS SAA</span>
+      <span>Daejeon, KR</span>
+    </div>
+    <nav>
+      <a href="https://github.com/kingswanzy2020">GitHub</a>
+      <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a>
+      <a href="mailto:kingsleyswanzy@gmail.com">Email</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div class="col">
+      <p class="eyebrow">Case study &mdash; Observability / Data</p>
+      <h1>DORA delivery scoreboard with DuckDB</h1>
+      <p class="standfirst">I built a scoreboard that computes four DORA metrics straight from timestamps as named SQL blocks, and refuses to publish the fifth &mdash; rework rate &mdash; until an AI classifier's labels reproduce 18 of 20 hand-audited judgments, with a stated limitation printed on every card.</p>
+
+      <div class="status">
+        <span class="chip">Local script, not a service</span>
+        <p>This never was a deployed service &mdash; it's a script you run against a captured corpus. <code>python scoreboard.py</code> reproduces the exact run below in about a minute, no cluster or cloud account involved. Everything here describes that one-shot run, not something that's currently &ldquo;live&rdquo; or &ldquo;down.&rdquo;</p>
+      </div>
+    </div>
+
+    <dl class="spec">
+      <div><dt>Runtime</dt><dd>Python 3.12 + DuckDB, in-memory</dd></div>
+      <div><dt>Input</dt><dd>captured corpus, data/*.json</dd></div>
+      <div><dt>Metrics</dt><dd>4 SQL blocks + 1 AI-gated</dd></div>
+      <div><dt>AI gate</dt><dd>&ge;18/20 accuracy, full coverage</dd></div>
+      <div><dt>Output</dt><dd>scoreboard.html, inline SVG</dd></div>
+      <div><dt>Network calls</dt><dd>0</dd></div>
+    </dl>
+  </header>
+
+  <section>
+    <div class="col">
+      <h2>What it does</h2>
+      <p class="h2note">Summary</p>
+      <p><code>scoreboard.py</code> loads a captured corpus of 20 deploys, 4 incidents and 20 hand-audited labels into in-memory DuckDB tables, and computes four DORA metrics as named SQL blocks &mdash; deployment frequency, change lead time, change fail rate, and failed-deployment recovery time. The fifth metric, rework rate, needs a judgment call no timestamp encodes, so it sits behind a gate: an AI classifier labels all 20 deploys, and the metric only gets released if those labels reproduce at least 18 of the 20 sealed ground-truth labels and cover every deploy. A failed or missing gate prints <code>WITHHELD</code> with a reason instead of guessing. Everything renders into one self-contained <code>scoreboard.html</code> with no external requests.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>How it is wired</h2>
+      <p class="h2note">The mechanism</p>
+      <p><strong>Why are the metrics SQL blocks instead of Python functions?</strong> Each block in <code>metrics.sql</code> is headed by <code>Counts</code>, <code>Excludes</code> and <code>Does not prove</code> comments, so reviewing a metric means reading a <code>SELECT</code>, not tracing loop state and accumulators across a Python file. The runner pulls the block's name from its first comment line, so adding a metric needs no code change &mdash; just a new block.</p>
+      <p><strong>Why medians instead of averages, and distinct deploys instead of raw incident counts?</strong> A mean lets one pathological deploy &mdash; say, a lead time of 400 hours during a bad week &mdash; drag the headline number away from what's typical. A median doesn't move for that. And counting distinct deploys rather than incidents means a single deploy that causes two incidents still counts as one failed deploy, not two &mdash; otherwise the fail-rate denominator and numerator would be measuring different things.</p>
+      <p><strong>Why does the gate check coverage as well as accuracy?</strong> Accuracy alone is gameable: a classifier that abstains on every hard case and only answers the easy ones can post 18 or more correct out of a smaller answered set while being useless exactly where judgment actually matters. Requiring a prediction for all 20 sealed deploys &mdash; not just 18 correct ones &mdash; removes selective abstention as a way to pass. Both edges are pinned by tests: 18 correct passes, 17 fails, and 19 perfect answers out of 20 deploys still fails on coverage alone.</p>
+      <p><strong>Why print <code>WITHHELD</code> instead of a rough estimate?</strong> A number with a confidence caveat still gets read as a number. <code>WITHHELD</code> plus the specific reason &mdash; the score achieved and the bar it missed &mdash; can't be misread as a measurement. There's no fallback value and no partial figure sitting behind it.</p>
+    </div>
+
+    <figure class="fig">
+      <div class="fig-scroll">
+<svg viewBox="0 0 1244 530" role="img" aria-label="Architecture of the DORA delivery scoreboard: a captured corpus of deploys, incidents and sealed labels loads into in-memory DuckDB tables; four metrics execute as named SQL blocks, are checked against reference.json, and flow into scoreboard.html, with a three-clock diagnostic printed alongside as context. Separately, an AI pass labels each deploy and is scored against the sealed ground truth by a gate requiring at least 18 of 20 correct and a prediction for every deploy; only on a pass does a deploy_labels join release the rework-rate metric into the scoreboard, and on a fail or missing labels the slot prints WITHHELD instead."><defs><marker id="mreq" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-app)"/></marker><marker id="mdata" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--dg-line)"/></marker><marker id="mctl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-ctl)"/></marker><marker id="mobs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-obs)"/></marker><marker id="mneu" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-neu)"/></marker><marker id="maws" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-aws)"/></marker></defs><rect x="30" y="60" width="1180" height="200" rx="8" fill="none" stroke="var(--c-ctl)" stroke-width="1.2" stroke-dasharray="6 5" opacity=".75"/><text x="48" y="52" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="10.5" letter-spacing="1.3" fill="var(--c-ctl)">DETERMINISTIC PIPELINE — SQL OVER A CAPTURED CORPUS</text><rect x="250" y="350" width="670" height="140" rx="8" fill="none" stroke="var(--c-app)" stroke-width="1.2" stroke-dasharray="6 5" opacity=".75"/><text x="268" y="342" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="10.5" letter-spacing="1.3" fill="var(--c-app)">AI-GATED METRIC — WITHHELD UNLESS ≥18/20 AND FULL COVERAGE</text><g><rect x="50" y="100" width="170" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M55,100.65 h160 a4.4,4.4 0 0 1 4.4,4.4 v0 h-168.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="63" y="113" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><rect x="58" y="106" width="14" height="17" rx="1.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="61" y1="111" x2="69" y2="111" stroke="var(--c-neu)" stroke-width="1.4"/><line x1="61" y1="115" x2="69" y2="115" stroke="var(--c-neu)" stroke-width="1.4"/><line x1="61" y1="119" x2="67" y2="119" stroke="var(--c-neu)" stroke-width="1.4"/><text x="101" y="133" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Captured corpus</text><text x="63" y="159" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">20 deploys, 4 incidents</text><rect x="63" y="167" width="82" height="15" rx="3" fill="var(--c-neu-s)"/><text x="69" y="177.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">data/*.json</text></g><!--ICON:corpus--><!--<image href="../assets/icons/corpus.svg" x="65" y="115" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><g><rect x="270" y="100" width="170" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-ctl)" stroke-width="1.3"/><path d="M275,100.65 h160 a4.4,4.4 0 0 1 4.4,4.4 v0 h-168.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-ctl)"/><rect x="283" y="113" width="30" height="30" rx="6" fill="var(--c-ctl-s)"/><ellipse cx="283" cy="108" rx="7.5" ry="3" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M275.5,108 v10 a7.5,3 0 0 0 15,0 v-10" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M275.5,113 a7.5,3 0 0 0 15,0" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><text x="321" y="133" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">DuckDB loaders</text><text x="283" y="159" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">in-memory tables</text><rect x="283" y="167" width="102" height="15" rx="3" fill="var(--c-ctl-s)"/><text x="289" y="177.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-ctl)">no network I/O</text></g><!--ICON:duckdb--><!--<image href="../assets/icons/duckdb.svg" x="285" y="115" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><g><rect x="490" y="100" width="170" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-ctl)" stroke-width="1.3"/><path d="M495,100.65 h160 a4.4,4.4 0 0 1 4.4,4.4 v0 h-168.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-ctl)"/><rect x="503" y="113" width="30" height="30" rx="6" fill="var(--c-ctl-s)"/><path d="M501,107 l-6,8 l6,8" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M509,107 l6,8 l-6,8" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><text x="541" y="133" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">metrics.sql</text><text x="503" y="159" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">4 named SQL blocks</text><rect x="503" y="167" width="121" height="15" rx="3" fill="var(--c-ctl-s)"/><text x="509" y="177.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-ctl)">counts + excludes</text></g><!--ICON:sql--><!--<image href="../assets/icons/sql.svg" x="505" y="115" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><g><rect x="710" y="100" width="170" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-ctl)" stroke-width="1.3"/><path d="M715,100.65 h160 a4.4,4.4 0 0 1 4.4,4.4 v0 h-168.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-ctl)"/><rect x="723" y="113" width="30" height="30" rx="6" fill="var(--c-ctl-s)"/><path d="M725,105 l10,10 l-10,10 l-10,-10 z" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linejoin="round"/><path d="M721,115 l3,3 l6,-6.5" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><text x="761" y="133" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">reference.json</text><text x="723" y="159" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">asserts expected values</text><rect x="723" y="167" width="89" height="15" rx="3" fill="var(--c-ctl-s)"/><text x="729" y="177.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-ctl)">fails loudly</text></g><!--ICON:assert--><!--<image href="../assets/icons/assert.svg" x="725" y="115" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><g><rect x="270" y="230" width="190" height="72" rx="5" fill="var(--dg-box)" stroke="var(--c-obs)" stroke-width="1.3"/><path d="M275,230.65 h180 a4.4,4.4 0 0 1 4.4,4.4 v0 h-188.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-obs)"/><rect x="283" y="243" width="30" height="30" rx="6" fill="var(--c-obs-s)"/><circle cx="285" cy="245" r="10" fill="none" stroke="var(--c-obs)" stroke-width="1.4"/><line x1="285" y1="245" x2="285" y2="239" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round"/><line x1="285" y1="245" x2="289.5" y2="247.5" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round"/><text x="321" y="263" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Three-clock diagnostic</text><text x="283" y="289" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">commit / PR / merge</text></g><!--ICON:clock--><!--<image href="../assets/icons/clock.svg" x="285" y="245" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><g><rect x="270" y="380" width="170" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-app)" stroke-width="1.3"/><path d="M275,380.65 h160 a4.4,4.4 0 0 1 4.4,4.4 v0 h-168.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-app)"/><rect x="283" y="393" width="30" height="30" rx="6" fill="var(--c-app-s)"/><line x1="289.0" y1="395.0" x2="294.0" y2="395.0" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round"/><line x1="287.8" y1="397.8" x2="291.4" y2="401.4" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round"/><line x1="285.0" y1="399.0" x2="285.0" y2="404.0" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round"/><line x1="282.2" y1="397.8" x2="278.6" y2="401.4" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round"/><line x1="281.0" y1="395.0" x2="276.0" y2="395.0" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round"/><line x1="282.2" y1="392.2" x2="278.6" y2="388.6" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round"/><line x1="285.0" y1="391.0" x2="285.0" y2="386.0" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round"/><line x1="287.8" y1="392.2" x2="291.4" y2="388.6" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round"/><text x="321" y="413" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">AI labelling</text><text x="283" y="439" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">commit msg + issue title</text><rect x="283" y="447" width="102" height="15" rx="3" fill="var(--c-app-s)"/><text x="289" y="457.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-app)">20 predictions</text></g><!--ICON:ai--><!--<image href="../assets/icons/ai.svg" x="285" y="395" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><g><rect x="490" y="380" width="190" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-app)" stroke-width="1.3"/><path d="M495,380.65 h180 a4.4,4.4 0 0 1 4.4,4.4 v0 h-188.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-app)"/><rect x="503" y="393" width="30" height="30" rx="6" fill="var(--c-app-s)"/><line x1="498" y1="386" x2="498" y2="404" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round"/><line x1="512" y1="386" x2="512" y2="404" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round"/><line x1="498" y1="395" x2="512" y2="395" stroke="var(--c-app)" stroke-width="1.4" stroke-dasharray="2.4 2.4"/><text x="541" y="413" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">AI gate</text><text x="503" y="439" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">≥18/20 AND full coverage</text><rect x="503" y="447" width="134" height="15" rx="3" fill="var(--c-app-s)"/><text x="509" y="457.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-app)">accuracy + coverage</text></g><!--ICON:gate--><!--<image href="../assets/icons/gate.svg" x="505" y="395" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><g><rect x="730" y="380" width="170" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-app)" stroke-width="1.3"/><path d="M735,380.65 h160 a4.4,4.4 0 0 1 4.4,4.4 v0 h-168.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-app)"/><rect x="743" y="393" width="30" height="30" rx="6" fill="var(--c-app-s)"/><circle cx="741" cy="395" r="8" fill="none" stroke="var(--c-app)" stroke-width="1.4"/><circle cx="749" cy="395" r="8" fill="none" stroke="var(--c-app)" stroke-width="1.4"/><text x="781" y="413" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">deploy_labels join</text><text x="743" y="439" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">materialised on PASS</text><rect x="743" y="447" width="70" height="15" rx="3" fill="var(--c-app-s)"/><text x="749" y="457.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-app)">PASS path</text></g><!--ICON:join--><!--<image href="../assets/icons/join.svg" x="745" y="395" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><g><rect x="1000" y="240" width="190" height="100" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M1005,240.65 h180 a4.4,4.4 0 0 1 4.4,4.4 v0 h-188.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="1013" y="253" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><rect x="1006" y="248" width="18" height="14" rx="2" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="1006" y1="252.5" x2="1024" y2="252.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="1009" cy="250.3" r="0.9" fill="var(--c-neu)"/><text x="1051" y="273" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">scoreboard.html</text><text x="1013" y="299" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">inline SVG, 0 requests</text><rect x="1013" y="307" width="63" height="15" rx="3" fill="var(--c-neu-s)"/><text x="1019" y="317.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">one file</text></g><!--ICON:html--><!--<image href="../assets/icons/html.svg" x="1015" y="255" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><line x1="220" y1="144" x2="270" y2="144" stroke="var(--c-ctl)" stroke-width="1.6" marker-end="url(#mctl)" fill="none"/><line x1="440" y1="144" x2="490" y2="144" stroke="var(--c-ctl)" stroke-width="1.6" marker-end="url(#mctl)" fill="none"/><line x1="660" y1="144" x2="710" y2="144" stroke="var(--c-ctl)" stroke-width="1.6" marker-end="url(#mctl)" fill="none"/><polyline points="880,160 950,160 1000,260" stroke="var(--c-ctl)" stroke-width="1.6" marker-end="url(#mctl)" fill="none"/><line x1="355" y1="188" x2="365" y2="230" stroke="var(--c-obs)" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#mobs)" fill="none"/><polyline points="460,266 980,266 1000,285" stroke="var(--c-obs)" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#mobs)" fill="none"/><polyline points="135,188 135,424 270,424" stroke="var(--c-app)" stroke-width="1.6" marker-end="url(#mreq)" fill="none"/><line x1="440" y1="424" x2="490" y2="424" stroke="var(--c-app)" stroke-width="1.6" marker-end="url(#mreq)" fill="none"/><polyline points="330,188 245,188 245,316 585,316 585,380" stroke="var(--c-ctl)" stroke-width="1.6" marker-end="url(#mctl)" fill="none"/><line x1="680" y1="424" x2="730" y2="424" stroke="var(--c-app)" stroke-width="1.6" marker-end="url(#mreq)" fill="none"/><polyline points="900,400 950,400 950,300 1000,300" stroke="var(--c-app)" stroke-width="1.6" marker-end="url(#mreq)" fill="none"/><polyline points="585,380 585,322 1000,322" stroke="var(--c-obs)" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#mobs)" fill="none"/><circle cx="245" cy="144" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="245" y="147.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">1</text><circle cx="465" cy="144" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="465" y="147.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">2</text><circle cx="685" cy="144" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="685" y="147.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">3</text><circle cx="940" cy="190" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="940" y="193.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">4</text><circle cx="362" cy="209" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="362" y="212.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">5</text><circle cx="700" cy="266" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="700" y="269.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">6</text><circle cx="135" cy="300" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="135" y="303.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">7</text><circle cx="465" cy="424" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="465" y="427.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">8</text><circle cx="245" cy="260" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="245" y="263.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">9</text><circle cx="705" cy="424" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="705" y="427.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">10</text><circle cx="970" cy="335" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="970" y="338.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">11</text><circle cx="790" cy="322" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="790" y="325.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">12</text></svg>
+      </div>
+      <figcaption>The two paths as they actually run. The four SQL-block metrics (1 through 4) are always reportable, because they're arithmetic over recorded timestamps &mdash; the fifth (8 through 12) needs a judgment call, which is why it's the only one that can legitimately come back empty.</figcaption>
+    </figure>
+
+    <div class="wiring">
+      <div class="panel">
+        <h4>How the components communicate</h4>
+        <table class="wire">
+          <thead><tr><th>No</th><th>From &rarr; to</th><th>Mechanism</th><th>What happens</th></tr></thead>
+          <tbody>
+          <tr><td>1</td><td class="ft">Corpus &rarr; DuckDB loaders</td><td class="mech">JSON &rarr; table</td><td>Loads deploys, incidents and sealed labels; no network access at any point.</td></tr>
+          <tr><td>2</td><td class="ft">DuckDB loaders &rarr; metrics.sql</td><td class="mech">SQL execution</td><td>The four timestamp metrics run as plain SELECTs.</td></tr>
+          <tr><td>3</td><td class="ft">metrics.sql &rarr; reference.json</td><td class="mech">assertion</td><td>Checks deployment frequency, median lead time and one exact value before anything prints.</td></tr>
+          <tr><td>4</td><td class="ft">reference.json &rarr; scoreboard.html</td><td class="mech">verified values</td><td>The four checked slots flow into the rendered cards.</td></tr>
+          <tr><td>5</td><td class="ft">DuckDB loaders &rarr; 3-clock diagnostic</td><td class="mech">3 start clocks</td><td>Median hours to production from commit, PR-opened and merged.</td></tr>
+          <tr><td>6</td><td class="ft">3-clock diagnostic &rarr; scoreboard.html</td><td class="mech">printed line</td><td>Shown as context beside lead time, never in place of it.</td></tr>
+          <tr><td>7</td><td class="ft">Corpus &rarr; AI labelling</td><td class="mech">commit msg + issue title</td><td>The only two fields the classifier sees per deploy.</td></tr>
+          <tr><td>8</td><td class="ft">AI labelling &rarr; AI gate</td><td class="mech">20 predictions</td><td>Scored against the sealed ground truth.</td></tr>
+          <tr><td>9</td><td class="ft">DuckDB loaders &rarr; AI gate</td><td class="mech">sealed_raw</td><td>The 20 hand-audited labels the predictions are checked against.</td></tr>
+          <tr><td>10</td><td class="ft">AI gate &rarr; deploy_labels join</td><td class="mech">PASS only</td><td>Materialised only once the gate clears both tests.</td></tr>
+          <tr><td>11</td><td class="ft">deploy_labels join &rarr; scoreboard.html</td><td class="mech">rework_rate released</td><td>e.g. 15.0%, once 20/20 sealed labels were reproduced.</td></tr>
+          <tr><td>12</td><td class="ft">AI gate &rarr; scoreboard.html</td><td class="mech">FAIL or no labels</td><td>Prints <code>WITHHELD</code> with the score and the bar it missed &mdash; no fallback number.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="panel">
+          <h4>Legend</h4>
+          <div class="key">
+            <div><i style="background:var(--c-neu)"></i><span><b>Input data</b>the captured corpus</span></div>
+            <div><i style="background:var(--c-ctl)"></i><span><b>Deterministic pipeline</b>loaders, SQL, assertions</span></div>
+            <div><i style="background:var(--c-app)"></i><span><b>AI-gated metric</b>labelling, gate, the join</span></div>
+            <div><i style="background:var(--c-obs)"></i><span><b>Diagnostic, not a slot</b>the 3-clock line</span></div>
+            <div><u style="border-color:var(--c-ctl)"></u><span><b>Deterministic path</b>always reportable</span></div>
+            <div><u style="border-color:var(--c-app)"></u><span><b>AI-gated path</b>on PASS only</span></div>
+            <div><u style="border-color:var(--c-obs); border-top-style:dashed"></u><span><b>Diagnostic / withheld</b>context or caveat, not a KPI</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h4>What the run touches</h4>
+          <p class="surface"><b>Reads &mdash;</b> only the JSON files under <code>data/</code>; nothing else on disk.<br>
+          <b>Writes &mdash;</b> one file, <code>scoreboard.html</code>, in the working directory.<br>
+          <b>Network &mdash;</b> zero requests. The rendered page has no scripts and makes none either.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What I verified, and how</h2>
+      <p class="h2note">Evidence, separated from design intent</p>
+      <p>Building something and being able to prove it works are different claims, so I've kept them separate below. <strong>Measured</strong> means I created the condition myself and recorded what happened. <strong>Observed</strong> means I looked at the output and saw the state it was already in. <strong>By design</strong> means the logic guarantees it, but I didn't run a test against it &mdash; better to say that plainly than dress it up as a result.</p>
+    </div>
+
+    <div class="ledger">
+
+      <div class="v-row measured">
+        <div class="v-tag">Measured</div>
+        <div>
+          <h3>The AI gate actually blocks the metric when there's nothing to score</h3>
+          <p>Running <code>python scoreboard.py</code> with no <code>data/ai_labels.json</code> present printed <code>rework_rate: WITHHELD (no AI labels found)</code> &mdash; the gate doing exactly what it's supposed to do with nothing to compare against. Adding the labels file back and re-running scored 20 of 20 sealed labels reproduced with full coverage, and released rework rate at 15.0%.</p>
+          <p class="v-method"><b>Method</b> Ran <code>scoreboard.py</code> twice &mdash; once with <code>data/ai_labels.json</code> moved aside, once restored &mdash; and read the printed slot value both times.</p>
+        </div>
+      </div>
+
+      <div class="v-row measured">
+        <div class="v-tag">Measured</div>
+        <div>
+          <h3>18/20 passes, 17/20 fails, and 19 perfect-but-incomplete answers still fails</h3>
+          <p>The gate's two boundary tests assert exactly this: a run scoring 18 of 20 correct with full coverage passes; 17 of 20 fails; and a classifier that only answers 19 of the 20 deploys &mdash; even if all 19 are correct &mdash; fails on coverage regardless of accuracy. I ran the suite and watched these three specific cases resolve the way the gate is supposed to.</p>
+          <p class="v-method"><b>Method</b> <code>python -m unittest tests.test_scoreboard.GateTest</code> &mdash; the accuracy-boundary and coverage-boundary tests specifically.</p>
+        </div>
+      </div>
+
+      <div class="v-row observed">
+        <div class="v-tag">Observed</div>
+        <div>
+          <h3>24 of 31 tests pass at the published commit &mdash; and the other 7 failures are explainable</h3>
+          <p>Two test classes predate the last two data commits. <code>SqlParserTest</code> still expects four SQL blocks, but <code>metrics.sql</code> now carries a fifth (<code>rework_rate</code>) once the gate started passing. <code>StdoutContractTest</code> asserts <code>ai_labels.json</code> is absent so it can pin the exact withheld line &mdash; but the labels are now committed, which is what lets the metric release at all. Moving the labels file aside brings the suite to 29 of 31. This is drift between the tests and the data, not a broken feature.</p>
+          <p class="v-method"><b>Method</b> Ran the full suite and read each of the 7 failing assertions against the current state of <code>data/</code>.</p>
+        </div>
+      </div>
+
+      <div class="v-row observed">
+        <div class="v-tag">Observed</div>
+        <div>
+          <h3>The rendered page's own caveats don't fully match its content requirements yet</h3>
+          <p>A SQL recount confirmed all five printed values were correct, but reviewing the actual <code>scoreboard.html</code> against what it's supposed to say found three gaps: it doesn't name report supersession or the retired DORA performance tiers, it skips the untested data-transport assumption and the volatility of a single 30-day window, and there's no explicit &ldquo;what this does not fix&rdquo; section on the page itself. The numbers are right; the caveats around them are incomplete.</p>
+          <p class="v-method"><b>Method</b> Cross-checked <code>scoreboard.html</code>'s rendered content against the documented caveat requirements in <code>docs/</code>.</p>
+        </div>
+      </div>
+
+      <div class="v-row design">
+        <div class="v-tag">By design</div>
+        <div>
+          <h3>Deployment frequency and change fail rate can't detect what they don't record &mdash; untested</h3>
+          <p>Deployment frequency counts pipeline events, not confirmed user-facing releases &mdash; a deploy that silently failed to reach users still counts. Change fail rate only counts incidents that were noticed and attributed back to a specific deploy; an unnoticed regression contributes to neither. These are stated limits of what a timestamp-only pipeline can know, not something I stress-tested against a real undetected failure.</p>
+          <p class="v-method"><b>Method</b> Read directly from each metric's own <code>Does not prove</code> block in <code>metrics.sql</code>. Not tested against a real incident.</p>
+        </div>
+      </div>
+
+    </div>
+    <p class="legend">Five claims. Two measured, two observed, one stated as a design limitation rather than dressed up as a result.</p>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Proof</h2>
+      <p class="h2note">Captured from an actual run</p>
+    </div>
+    <div class="shots">
+      <figure>
+        <img loading="lazy" alt="scoreboard.py output showing rework_rate: WITHHELD with no AI labels found" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/observability/delivery-scoreboard/Screenshots/Screenshot%20from%202026-09-06%2006-05-30.png">
+        <figcaption>No labels yet: rework rate withheld, reason stated.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="scoreboard.py output showing rework_rate: 15.0% after AI labels were added" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/observability/delivery-scoreboard/Screenshots/Screenshot%20from%202026-09-06%2020-47-22.png">
+        <figcaption>Gate passed: rework rate released at 15.0%.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="scoreboard.html rendered readout with five metric cards" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/observability/delivery-scoreboard/Screenshots/Screenshot%20from%202026-09-06%2021-13-06.png">
+        <figcaption>The rendered readout &mdash; a &ldquo;cannot prove&rdquo; line on every card.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="Python one-liner counting 20 deploys, 4 incidents and 3 incident-triggered labels" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/observability/delivery-scoreboard/Screenshots/Screenshot%20from%202026-09-06%2000-25-42.png">
+        <figcaption>The corpus: 20 deploys, 4 incidents, 3 incident-triggered.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What actually broke</h2>
+      <p class="h2note">Three failures worth keeping</p>
+      <div class="broke">
+        <article>
+          <h3>The gate withheld the metric because the inspector never arrived</h3>
+          <p>The first full run printed <code>rework_rate: WITHHELD (no AI labels found)</code>. That's not a bug &mdash; it's the gate doing its job: with no <code>ai_labels.json</code> there's nothing to score against the sealed set, so the slot holds instead of guessing. Once the AI labels were committed, the gate scored 20/20 with full coverage and released 15.0%.</p>
+        </article>
+        <article>
+          <h3>The numbers passed their audit; the caveats didn't</h3>
+          <p>A SQL recount confirmed all five values, but reviewing <code>scoreboard.html</code> against its own content requirements found three gaps &mdash; no mention of report supersession or the retired DORA performance tiers, no acknowledgment of the untested data-transport assumption or the volatility of a 30-day window, and no explicit &ldquo;what this does not fix&rdquo; section. For a readout whose entire point is its caveats, correct numbers with incomplete limits is still a defect.</p>
+        </article>
+        <article>
+          <h3>The test suite drifted behind the last two data commits &mdash; 24 of 31 pass</h3>
+          <p><code>SqlParserTest</code> still expects four SQL blocks after <code>rework_rate</code> became a fifth, and that block queries <code>deploy_labels</code>, a table that only exists once the gate has passed. <code>StdoutContractTest</code> asserts <code>ai_labels.json</code> is absent so it can pin the exact withheld line &mdash; but committing the labels is what released the metric in the first place. Moving the file aside gets the suite to 29 of 31. The tests encode an intent &mdash; the default run demonstrates withholding &mdash; that the committed corpus has since moved past.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Source</h2>
+      <p class="h2note">Everything on this page came from here</p>
+      <div class="src">
+        <p><code>scoreboard.py</code> (loaders, gate, and inline-SVG renderer), the five named blocks in <code>metrics.sql</code>, the captured corpus and sealed labels under <code>data/</code>, the 31-test suite, and four ADRs that each record their own reversal trigger live here: <a href="https://github.com/kingswanzy2020/delivery-scoreboard">kingswanzy2020/delivery-scoreboard</a>.</p>
+        <pre>git clone https://github.com/kingswanzy2020/delivery-scoreboard.git
+cd delivery-scoreboard
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python scoreboard.py</pre>
+      </div>
+      <p class="stack"><b>Stack</b><br>Python &middot; DuckDB &middot; SQL metric definitions &middot; Medians over means &middot; AI output validation &middot; Accuracy + coverage gating &middot; Ground-truth labelling &middot; Architecture Decision Records &middot; Inline SVG rendering &middot; Self-contained HTML output &middot; unittest boundary testing</p>
+    </div>
+  </section>
+
+  <footer class="col">
+    Ahmed Tetteh &middot; <a href="mailto:kingsleyswanzy@gmail.com">kingsleyswanzy@gmail.com</a> &middot; <a href="https://github.com/kingswanzy2020">github.com/kingswanzy2020</a> &middot; <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a><br>
+    Static HTML and CSS. No JavaScript, no framework, no build step for the page itself.
+  </footer>
+
+</div>
+</body>
+</html>
