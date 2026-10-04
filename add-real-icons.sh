@@ -11,6 +11,7 @@
 #           ./add-real-icons.sh terraform-gitops/index.html
 #           ./add-real-icons.sh argocd-pipeline/index.html
 #           ./add-real-icons.sh delivery-scoreboard/index.html
+#           ./add-real-icons.sh fastapi-react/index.html
 #
 # The same icon file is reused across pages where the same tool appears in
 # more than one diagram (kubernetes.svg, github.svg, engineer.svg) — drop it
@@ -28,6 +29,8 @@
 #   sealed-secrets.svg  renovate.svg
 #   aws-load-balancer-controller.svg
 #   metrics-server.svg  grafana.svg
+#   ecr.svg  helm.svg  redis.svg  celery.svg   -> AWS icons / each project's brand page
+#   fastapi.svg  ingress.svg
 #   github.svg                                 -> GitHub logo/brand assets
 #   httpbin.svg  browser.svg  engineer.svg     -> any neutral icon set you like
 #   presync-hook.svg  workload.svg  corpus.svg
