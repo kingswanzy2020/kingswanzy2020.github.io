@@ -7,6 +7,8 @@ Static HTML case studies, one per project. No build step, no framework.
 - `eks/index.html` — production application on Amazon EKS.
 - `terraform-gitops/index.html` — Terraform GitOps pipeline on AWS.
 - `argocd-pipeline/index.html` — GitOps deployment pipeline with ArgoCD.
+- `fastapi-react/index.html` — a FastAPI + React template taken from compose
+  to Kubernetes; its screenshots are in `fastapi-react/img/`.
 - `delivery-scoreboard/index.html` — DORA delivery scoreboard with DuckDB.
 - `.github/workflows/deploy.yml` — deploys on every push to `main` via
   GitHub Pages (Actions source, not the branch source).
