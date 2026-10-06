@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Case study: an eBook lead-capture site at a custom domain, served by S3 and CloudFront over HTTPS, with API Gateway, Lambda, SES and DynamoDB handling each submission.">
+<title>Serverless Lead Capture</title>
+<meta name="theme-color" content="#0b1220">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@500;600&display=swap">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body class="case">
+<div class="bar">
+  <div class="wrap">
+    <a class="brand" href="../"><span class="avatar sm" aria-hidden="true">AT</span><b>Ahmed Tetteh</b><small>DevOps &middot; Platform &middot; SRE</small></a>
+    <nav>
+      <a class="back" href="../#work">&larr; All case studies</a>
+      <a href="https://github.com/kingswanzy2020">GitHub</a>
+      <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a>
+      <a href="mailto:kingsleyswanzy@gmail.com">Email</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div class="col">
+      <p class="eyebrow">Case study &mdash; AWS / Serverless</p>
+      <h1>A serverless lead-capture site on a real domain</h1>
+      <p class="standfirst">I built an eBook download site for a small business at <code>kahmedt.com</code>: a static site on S3 behind CloudFront over HTTPS, and a form that calls API Gateway and a Lambda function, which emails the owner through SES and stores the lead in DynamoDB.</p>
+
+      <div class="status">
+        <span class="chip">Decommissioned</span>
+        <p>This ran in production at <code>kahmedt.com</code>, then I decommissioned it when the project wrapped up. The screenshots document the live system. The site files and the Lambda handler are in the repo; everything below is in the past tense because the infrastructure is gone, not because it never served anyone.</p>
+      </div>
+    </div>
+
+    <dl class="spec">
+      <div><dt>Front door</dt><dd>Route 53 &rarr; CloudFront &rarr; S3</dd></div>
+      <div><dt>TLS</dt><dd>ACM certificate, us-east-1</dd></div>
+      <div><dt>API</dt><dd>API Gateway REST, POST</dd></div>
+      <div><dt>Compute</dt><dd>Lambda, Node.js, SDK v3</dd></div>
+      <div><dt>Data</dt><dd>DynamoDB ContactMessages</dd></div>
+      <div><dt>Notify</dt><dd>SES to the owner</dd></div>
+    </dl>
+  </header>
+
+  <section>
+    <div class="col">
+      <h2>What it does</h2>
+      <p class="h2note">Summary</p>
+      <p>A visitor resolved <code>kahmedt.com</code> through Route 53 to CloudFront, which served the static site from S3 over HTTPS with a free ACM certificate. Clicking <em>Download eBook</em> sent an AJAX POST to <code>/epicreads_resource</code> on API Gateway, which invoked the <code>epicreads_contactus</code> Lambda. The function emailed the business owner through SES with the lead's name, email, a UUID and an ISO&nbsp;8601 timestamp, stored the same item in the <code>ContactMessages</code> table, and logged the run to CloudWatch. Expected load was 10&ndash;15 downloads a day, which is why there's no server anywhere in it.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>How it is wired</h2>
+      <p class="h2note">The mechanism</p>
+      <p><strong>Why serverless for this?</strong> The workload was a handful of form submissions a day. An always-on server would cost money while idle and need patching. Lambda and on-demand DynamoDB are billed per request, so at this scale the backend cost is close to zero and there's nothing to patch.</p>
+      <p><strong>Why CloudFront in front of S3 instead of S3 website hosting?</strong> Two reasons. Route 53 can alias straight to an S3 website endpoint only when the bucket name matches the domain, and mine didn't. And CloudFront is what gives the domain HTTPS: the ACM certificate attaches to the distribution, which also caches the site at edge locations.</p>
+      <p><strong>Why does the certificate live in <code>us-east-1</code>?</strong> CloudFront only accepts ACM certificates issued in <code>us-east-1</code>, whatever region everything else is in. My first certificate was in the wrong region and CloudFront wouldn't take it.</p>
+      <p><strong>Why an inline policy on the Lambda role?</strong> The function needs exactly two things: <code>ses:SendEmail</code> and <code>dynamodb:PutItem</code>. An inline policy scoped to those is deleted with the role, so nothing outlives the function.</p>
+    </div>
+
+    <figure class="fig">
+      <div class="fig-scroll">
+<svg viewBox="0 0 1244 720" role="img" aria-label="A visitor resolves kahmedt.com through Route 53 to CloudFront, which uses an ACM certificate and serves the static site from S3. The form sends an AJAX POST to API Gateway, which invokes the Lambda function. Lambda sends an email through SES to the business owner, writes the lead to DynamoDB, and logs to CloudWatch."><defs><marker id="mreq" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-app)"/></marker><marker id="mdata" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--dg-line)"/></marker><marker id="mctl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-ctl)"/></marker><marker id="mobs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-obs)"/></marker><marker id="maws" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-aws)"/></marker><marker id="mneu" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-neu)"/></marker></defs><rect x="176" y="60" width="1052" height="630" rx="8" fill="none" stroke="var(--c-aws)" stroke-width="1.2" stroke-dasharray="6 5" opacity=".8"/><text x="194" y="53" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="10.5" letter-spacing="1.3" fill="var(--c-aws)">AWS ACCOUNT — ROUTE 53 · CLOUDFRONT · ACM · S3 · API GATEWAY · LAMBDA · SES · DYNAMODB</text><g><rect x="16" y="110" width="136" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M21,110.65 h126 a4.4,4.4 0 0 1 4.4,4.4 v0 h-134.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="29" y="123" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><rect x="35" y="131" width="18" height="14" rx="2" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="35" y1="135.5" x2="53" y2="135.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="38" cy="133.3" r="0.9" fill="var(--c-neu)"/><!--ICON:browser--><!--<image href="../assets/icons/browser.svg" x="31" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="67" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Visitor</text><text x="29" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">kahmedt.com</text><rect x="29" y="177" width="41" height="15" rx="3" fill="var(--c-neu-s)"/><text x="35" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">HTTPS</text></g><g><rect x="200" y="110" width="160" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M205,110.65 h150 a4.4,4.4 0 0 1 4.4,4.4 v0 h-158.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="213" y="123" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><circle cx="228" cy="138" r="8.5" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="228" cy="138" rx="3.6" ry="8.5" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="219.5" y1="138" x2="236.5" y2="138" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:route53--><!--<image href="../assets/icons/route53.svg" x="215" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="251" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Route 53</text><text x="213" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">hosted zone</text><rect x="213" y="177" width="81" height="15" rx="3" fill="var(--c-aws-s)"/><text x="219" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">alias record</text></g><g><rect x="404" y="110" width="180" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M409,110.65 h170 a4.4,4.4 0 0 1 4.4,4.4 v0 h-178.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="417" y="123" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><path d="M427,144 a4.5,4.5 0 0 1 -0.5,-9 a6,6 0 0 1 11.5,1.5 a3.8,3.8 0 0 1 0,7.5 z" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:cloudfront--><!--<image href="../assets/icons/cloudfront.svg" x="419" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="455" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">CloudFront</text><text x="417" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">edge cache · HTTPS only</text><rect x="417" y="177" width="81" height="15" rx="3" fill="var(--c-aws-s)"/><text x="423" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">distribution</text></g><g><rect x="640" y="110" width="180" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M645,110.65 h170 a4.4,4.4 0 0 1 4.4,4.4 v0 h-178.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="653" y="123" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><rect x="660" y="131" width="16" height="14" rx="2" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="668" cy="138" r="3.4" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="668" cy="138" r="0.9" fill="var(--c-aws)"/><!--ICON:s3--><!--<image href="../assets/icons/s3.svg" x="655" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="691" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">S3 static site</text><text x="653" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">HTML · CSS · JS</text><rect x="653" y="177" width="46" height="15" rx="3" fill="var(--c-aws-s)"/><text x="659" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">origin</text></g><g><rect x="404" y="280" width="180" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M409,280.65 h170 a4.4,4.4 0 0 1 4.4,4.4 v0 h-178.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="417" y="293" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><rect x="425.5" y="307" width="13" height="9.5" rx="1.8" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M428.2,307 v-3.2 a3.8,3.8 0 0 1 7.6,0 v3.2" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:acm--><!--<image href="../assets/icons/acm.svg" x="419" y="295" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="455" y="313" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">ACM certificate</text><text x="417" y="339" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">issued in us-east-1</text><rect x="417" y="347" width="92" height="15" rx="3" fill="var(--c-aws-s)"/><text x="423" y="357.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">for CloudFront</text></g><g><rect x="200" y="440" width="176" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M205,440.65 h166 a4.4,4.4 0 0 1 4.4,4.4 v0 h-174.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="213" y="453" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><line x1="220" y1="468" x2="227" y2="468" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="227" y1="468" x2="231" y2="462" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="234" cy="462" r="2.4" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="227" y1="468" x2="231" y2="468" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="234" cy="468" r="2.4" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="227" y1="468" x2="231" y2="474" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="234" cy="474" r="2.4" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:api-gateway--><!--<image href="../assets/icons/api-gateway.svg" x="215" y="455" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="251" y="473" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">API Gateway</text><text x="213" y="499" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">/epicreads_resource</text><rect x="213" y="507" width="75" height="15" rx="3" fill="var(--c-aws-s)"/><text x="219" y="517.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">POST · CORS</text></g><g><rect x="430" y="440" width="200" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-app)" stroke-width="1.3"/><path d="M435,440.65 h190 a4.4,4.4 0 0 1 4.4,4.4 v0 h-198.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-app)"/><rect x="443" y="453" width="30" height="30" rx="6" fill="var(--c-app-s)"/><polyline points="460,459 453,469 458,469 456,477 463,466 458,466 460,459" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:lambda--><!--<image href="../assets/icons/lambda.svg" x="445" y="455" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="481" y="473" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Lambda</text><text x="443" y="499" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">epicreads_contactus</text><rect x="443" y="507" width="104" height="15" rx="3" fill="var(--c-app-s)"/><text x="449" y="517.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-app)">Node.js · SDK v3</text></g><g><rect x="700" y="360" width="170" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M705,360.65 h160 a4.4,4.4 0 0 1 4.4,4.4 v0 h-168.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="713" y="373" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><rect x="719" y="382" width="18" height="12" rx="1.5" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="719.5,382.5 728,389 736.5,382.5" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:ses--><!--<image href="../assets/icons/ses.svg" x="715" y="375" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="751" y="393" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Amazon SES</text><text x="713" y="419" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">verified identities</text><rect x="713" y="427" width="64" height="15" rx="3" fill="var(--c-aws-s)"/><text x="719" y="437.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">SendEmail</text></g><g><rect x="960" y="360" width="176" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M965,360.65 h166 a4.4,4.4 0 0 1 4.4,4.4 v0 h-174.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="973" y="373" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><circle cx="988" cy="384" r="3.6" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M980.5,396 a7.5,6.5 0 0 1 15,0" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:engineer--><!--<image href="../assets/icons/engineer.svg" x="975" y="375" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="1011" y="393" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Business owner</text><text x="973" y="419" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">instant email</text><rect x="973" y="427" width="121" height="15" rx="3" fill="var(--c-neu-s)"/><text x="979" y="437.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">name · email · UUID</text></g><g><rect x="700" y="520" width="170" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M705,520.65 h160 a4.4,4.4 0 0 1 4.4,4.4 v0 h-168.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="713" y="533" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><ellipse cx="728" cy="543" rx="7.5" ry="3" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M720.5,543 v10 a7.5,3 0 0 0 15,0 v-10" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M720.5,548 a7.5,3 0 0 0 15,0" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:dynamodb--><!--<image href="../assets/icons/dynamodb.svg" x="715" y="535" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="751" y="553" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">DynamoDB</text><text x="713" y="579" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">ContactMessages</text><rect x="713" y="587" width="121" height="15" rx="3" fill="var(--c-aws-s)"/><text x="719" y="597.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">PutItem · on-demand</text></g><g><rect x="960" y="520" width="176" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-obs)" stroke-width="1.3"/><path d="M965,520.65 h166 a4.4,4.4 0 0 1 4.4,4.4 v0 h-174.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-obs)"/><rect x="973" y="533" width="30" height="30" rx="6" fill="var(--c-obs-s)"/><polyline points="980,553 985,546 989,550 996,542" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="979.5" y1="556" x2="996.5" y2="556" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:cloudwatch--><!--<image href="../assets/icons/cloudwatch.svg" x="975" y="535" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="1011" y="553" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">CloudWatch</text><text x="973" y="579" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">Lambda + API logs</text><rect x="973" y="587" width="104" height="15" rx="3" fill="var(--c-obs-s)"/><text x="979" y="597.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-obs)">every invocation</text></g><line x1="152" y1="154" x2="196" y2="154" stroke="var(--c-app)" stroke-width="1.6" marker-end="url(#mreq)" fill="none"/><line x1="360" y1="154" x2="400" y2="154" stroke="var(--c-app)" stroke-width="1.6" marker-end="url(#mreq)" fill="none"/><line x1="584" y1="154" x2="636" y2="154" stroke="var(--c-app)" stroke-width="1.6" marker-end="url(#mreq)" fill="none"/><line x1="494" y1="280" x2="494" y2="202" stroke="var(--c-aws)" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#maws)" fill="none"/><polyline points="84,198 84,484 196,484" stroke="var(--c-app)" stroke-width="1.6" marker-end="url(#mreq)" fill="none"/><line x1="376" y1="484" x2="426" y2="484" stroke="var(--c-app)" stroke-width="1.6" marker-end="url(#mreq)" fill="none"/><polyline points="630,484 663,484 663,404 696,404" stroke="var(--c-app)" stroke-width="1.6" marker-end="url(#mreq)" fill="none"/><line x1="870" y1="404" x2="956" y2="404" stroke="var(--c-app)" stroke-width="1.6" marker-end="url(#mreq)" fill="none"/><polyline points="630,484 663,484 663,564 696,564" stroke="var(--dg-line)" stroke-width="1.6" marker-end="url(#mdata)" fill="none"/><polyline points="530,528 530,650 1048,650 1048,612" stroke="var(--c-obs)" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#mobs)" fill="none"/><circle cx="174" cy="154" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="174" y="157.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">1</text><circle cx="380" cy="154" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="380" y="157.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">2</text><circle cx="610" cy="154" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="610" y="157.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">3</text><circle cx="494" cy="241" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="494" y="244.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">4</text><circle cx="84" cy="341" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="84" y="344.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">5</text><circle cx="401" cy="484" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="401" y="487.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">6</text><circle cx="663" cy="444" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="663" y="447.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">7</text><circle cx="913" cy="404" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="913" y="407.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">8</text><circle cx="663" cy="524" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="663" y="527.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">9</text><circle cx="789" cy="650" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="789" y="653.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">10</text></svg>
+      </div>
+      <figcaption>The system as it ran in production. Arrows 1 to 4 are the static half &mdash; the part of the build where most of the debugging happened. Arrows 5 to 10 are one form submission: one POST, one function, one email and one row.</figcaption>
+    </figure>
+
+    <div class="wiring">
+      <div class="panel">
+        <h4>How the components communicate</h4>
+        <table class="wire">
+          <thead><tr><th>No</th><th>From &rarr; to</th><th>Mechanism</th><th>What happens</th></tr></thead>
+          <tbody>
+          <tr><td>1</td><td class="ft">Visitor &rarr; Route 53</td><td class="mech">DNS</td><td>Resolves the custom domain; the registrar's NS records point at the hosted zone.</td></tr>
+          <tr><td>2</td><td class="ft">Route 53 &rarr; CloudFront</td><td class="mech">alias record</td><td>Points the apex at the distribution.</td></tr>
+          <tr><td>3</td><td class="ft">CloudFront &rarr; S3 static site</td><td class="mech">origin fetch</td><td>Serves and caches the site; viewers get HTTPS only.</td></tr>
+          <tr><td>4</td><td class="ft">ACM certificate &rarr; CloudFront</td><td class="mech">certificate</td><td>The TLS certificate, which had to be issued in <code>us-east-1</code>.</td></tr>
+          <tr><td>5</td><td class="ft">Visitor &rarr; API Gateway</td><td class="mech">AJAX POST</td><td>The form submits name and email from the browser; CORS enabled on the resource.</td></tr>
+          <tr><td>6</td><td class="ft">API Gateway &rarr; Lambda</td><td class="mech">Lambda integration</td><td>Invokes the function with the form body.</td></tr>
+          <tr><td>7</td><td class="ft">Lambda &rarr; Amazon SES</td><td class="mech">ses:SendEmail</td><td>Emails the owner the lead's details, a UUID and a timestamp.</td></tr>
+          <tr><td>8</td><td class="ft">Amazon SES &rarr; Business owner</td><td class="mech">email</td><td>Arrives within moments of the click.</td></tr>
+          <tr><td>9</td><td class="ft">Lambda &rarr; DynamoDB</td><td class="mech">dynamodb:PutItem</td><td>Stores <code>id</code> (UUID partition key), <code>name</code>, <code>email</code>, <code>timestamp</code>.</td></tr>
+          <tr><td>10</td><td class="ft">Lambda &rarr; CloudWatch</td><td class="mech">logs</td><td>Every invocation logged; API Gateway monitored too.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="panel">
+          <h4>Legend</h4>
+          <div class="key">
+            <div><i style="background:var(--c-neu)"></i><span><b>People</b>visitor, business owner</span></div>
+            <div><i style="background:var(--c-aws)"></i><span><b>AWS-managed</b>DNS, CDN, TLS, storage, API, email, data</span></div>
+            <div><i style="background:var(--c-app)"></i><span><b>The function</b>the only code that runs</span></div>
+            <div><i style="background:var(--c-obs)"></i><span><b>Observability</b>CloudWatch</span></div>
+            <div><u style="border-color:var(--c-app)"></u><span><b>Request path</b>browser to backend</span></div>
+            <div><u style="border-color:var(--dg-line)"></u><span><b>Data write</b>the lead</span></div>
+            <div><u style="border-color:var(--c-aws); border-top-style:dashed"></u><span><b>Configuration</b>the certificate</span></div>
+            <div><u style="border-color:var(--c-obs); border-top-style:dashed"></u><span><b>Logs</b>per invocation</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h4>What was reachable</h4>
+          <p class="surface"><b>Public &mdash;</b> the CloudFront distribution at <code>kahmedt.com</code> and the API Gateway endpoint, both HTTPS.<br>
+          <b>Private &mdash;</b> the Lambda function, the DynamoDB table and SES, reachable only through the API and the function's role.<br>
+          <b>Now &mdash;</b> nothing. The distribution, API, function and table were all decommissioned.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What I verified, and how</h2>
+      <p class="h2note">Evidence, separated from design intent</p>
+      <p>Building something and being able to prove it works are different claims, so I've kept them separate below. <strong>Measured</strong> means I created the condition myself and recorded what happened. <strong>Observed</strong> means I looked at the live system and saw the state it was already in. <strong>By design</strong> means the configuration guarantees it, but I didn't run a test against it &mdash; better to say that plainly than dress it up as a result.</p>
+    </div>
+
+    <div class="ledger">
+
+      <div class="v-row measured">
+        <div class="v-tag">Measured</div>
+        <div>
+          <h3>One click produced an email and a stored lead</h3>
+          <p>I submitted the download form on the live site. The owner's inbox got an email with the full name, email address, a UUID and an ISO&nbsp;8601 timestamp, and the same item appeared in <code>ContactMessages</code>. The first version of the email had fewer fields; the metadata came with the DynamoDB phase.</p>
+          <p class="v-method"><b>Method</b> Submitted the form, then checked the inbox and the table.</p>
+        </div>
+      </div>
+      <div class="v-row observed">
+        <div class="v-tag">Observed</div>
+        <div>
+          <h3>The site served at the custom domain over HTTPS</h3>
+          <p><code>kahmedt.com</code> loaded through CloudFront with a valid certificate, once the certificate was in the right region and the registrar pointed at Route 53.</p>
+          <p class="v-method"><b>Method</b> Loaded the domain in a browser and checked the certificate (screenshot below).</p>
+        </div>
+      </div>
+      <div class="v-row observed">
+        <div class="v-tag">Observed</div>
+        <div>
+          <h3>Every invocation showed up in CloudWatch</h3>
+          <p>CloudWatch had the Lambda function's runs and the API Gateway metrics, which is where the CORS and permission failures below were diagnosed.</p>
+          <p class="v-method"><b>Method</b> Read the function's log group and metrics.</p>
+        </div>
+      </div>
+      <div class="v-row design">
+        <div class="v-tag">By design</div>
+        <div>
+          <h3>The function can do two things and nothing else</h3>
+          <p>The execution role's inline policy allows <code>dynamodb:PutItem</code> and <code>ses:SendEmail</code>. I didn't try to make the function call anything else to watch it fail.</p>
+          <p class="v-method"><b>Method</b> Reviewed the inline policy. Not adversarially tested.</p>
+        </div>
+      </div>
+      <div class="v-row design">
+        <div class="v-tag">By design</div>
+        <div>
+          <h3>Idle cost is close to zero</h3>
+          <p>Lambda is billed per invocation and the table is on-demand, so with 10&ndash;15 submissions a day there's no standing compute cost. That's the pricing model, not a bill I'm quoting.</p>
+          <p class="v-method"><b>Method</b> Reasoned from the services' pricing models; no cost report kept.</p>
+        </div>
+      </div>
+
+    </div>
+    <p class="legend">Five claims. one measured, two observed, two stated as design properties rather than dressed up as results.</p>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Proof</h2>
+      <p class="h2note">Captured from the live system</p>
+    </div>
+    <div class="shots">
+      <figure>
+        <img loading="lazy" alt="The eBook site at the custom domain kahmedt.com served over HTTPS" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/aws/serverless-lead-capture/Images/Screenshot%20from%202025-11-12%2010-16-21.png">
+        <figcaption>The site at <code>kahmedt.com</code>, over HTTPS.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="The eBook download form with name and email fields and a Download Ebook button" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/aws/serverless-lead-capture/Images/Screenshot%20from%202025-11-12%2022-37-29.png">
+        <figcaption>The form: name, email, <em>Download Ebook</em>.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="Email received by the business owner via SES with full name, email, UUID and timestamp" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/aws/serverless-lead-capture/Images/Screenshot04.jpeg">
+        <figcaption>The owner's email, with UUID and timestamp.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="CloudWatch monitoring for the Lambda function and API Gateway" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/aws/serverless-lead-capture/Images/Screenshot%20from%202025-11-12%2012-46-04.png">
+        <figcaption>CloudWatch on the function and the API.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What actually broke</h2>
+      <p class="h2note">Four failures worth keeping</p>
+      <div class="broke">
+        <article>
+          <h3>CloudFront rejected my certificate</h3>
+          <p>I requested the ACM certificate in my working region. CloudFront only uses certificates from <code>us-east-1</code>, so it simply wasn't offered. Re-issuing it in <code>us-east-1</code> fixed it.</p>
+        </article>
+        <article>
+          <h3>The domain didn't resolve to anything I'd built</h3>
+          <p>The Route 53 hosted zone had records, but the registrar was still using its own nameservers. Copying all four NS records from the hosted zone to the registrar is what made Route 53 authoritative.</p>
+        </article>
+        <article>
+          <h3>CORS errors on submit</h3>
+          <p>The form's AJAX call from the CloudFront domain was blocked by the browser because API Gateway wasn't returning CORS headers. I enabled CORS on the resource and had the Lambda return <code>Access-Control-Allow-Origin</code> as well.</p>
+        </article>
+        <article>
+          <h3>Lambda couldn't write to DynamoDB</h3>
+          <p>The function ran, sent the email, and failed on the write: its role had no DynamoDB permission. An inline <code>dynamodb:PutItem</code> policy on the execution role fixed it, scoped to exactly that action.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Source</h2>
+      <p class="h2note">Everything on this page came from here</p>
+      <div class="src">
+        <p>Unlike the other projects, this one's code lives in my portfolio repo rather than a standalone one: the site in <code>Ebook/</code> and the Lambda handler in <code>Extra/</code>, at <a href="https://github.com/kingswanzy2020/Projects/tree/main/aws/serverless-lead-capture">Projects/aws/serverless-lead-capture</a>.</p>
+        <pre>git clone https://github.com/kingswanzy2020/Projects.git
+cd "Projects/aws/serverless-lead-capture"
+aws s3 sync Ebook/ s3://YOUR_BUCKET_NAME</pre>
+      </div>
+      <p class="stack"><b>Stack</b><br>Amazon S3 &middot; CloudFront &middot; Route 53 &middot; AWS Certificate Manager &middot; API Gateway (REST) &middot; AWS Lambda (Node.js, SDK v3) &middot; Amazon SES &middot; DynamoDB &middot; IAM inline policies &middot; CloudWatch &middot; CORS</p>
+    </div>
+  </section>
+
+  <nav class="next" aria-label="More case studies">
+    <a href="../terraform-s3/"><small>&larr; Previous</small>Terraform fundamentals: a locked-down S3 bucket</a>
+    <a class="r" href="../iam-permissions-boundary/"><small>Next &rarr;</small>An IAM permissions boundary as a role ceiling</a>
+  </nav>
+
+  <footer class="col">
+    Ahmed Tetteh &middot; <a href="mailto:kingsleyswanzy@gmail.com">kingsleyswanzy@gmail.com</a> &middot; <a href="https://github.com/kingswanzy2020">github.com/kingswanzy2020</a> &middot; <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a><br>
+    Static HTML and CSS. No JavaScript, no framework, no build step for the page itself.
+  </footer>
+
+</div>
+</body>
+</html>

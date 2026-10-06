@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Case study: a Flask backend that proxies the Hacker News API, built into a Docker image on EC2 and pushed to a private Amazon ECR repository for an EKS cluster.">
+<title>Backend Image for EKS</title>
+<meta name="theme-color" content="#0b1220">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@500;600&display=swap">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body class="case">
+<div class="bar">
+  <div class="wrap">
+    <a class="brand" href="../"><span class="avatar sm" aria-hidden="true">AT</span><b>Ahmed Tetteh</b><small>DevOps &middot; Platform &middot; SRE</small></a>
+    <nav>
+      <a class="back" href="../#work">&larr; All case studies</a>
+      <a href="https://github.com/kingswanzy2020">GitHub</a>
+      <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a>
+      <a href="mailto:kingsleyswanzy@gmail.com">Email</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div class="col">
+      <p class="eyebrow">Case study &mdash; Kubernetes / AWS</p>
+      <h1>Packaging a backend for Amazon EKS with a private ECR registry</h1>
+      <p class="standfirst">I rebuilt the EKS cluster with <code>eksctl</code>, cloned a Flask backend that proxies the Hacker News API, built it into a Docker image on EC2, and pushed it to a private Amazon ECR repository the cluster could pull from.</p>
+
+      <div class="status">
+        <span class="chip">Guided lab</span>
+        <p>I built this in my own AWS account as a guided NextWork lab. I'm not pointing you at a live endpoint &mdash; the screenshots below were captured during the build, and <code>eksctl</code>, the backend's <code>Dockerfile</code> and three ECR push commands rebuild it from an empty account. Everything below is in the past tense for that reason.</p>
+      </div>
+    </div>
+
+    <dl class="spec">
+      <div><dt>Cluster</dt><dd>Amazon EKS via eksctl</dd></div>
+      <div><dt>App</dt><dd>Flask API over Hacker News</dd></div>
+      <div><dt>Build host</dt><dd>EC2, Amazon Linux</dd></div>
+      <div><dt>Base image</dt><dd>python:3.9-alpine</dd></div>
+      <div><dt>Registry</dt><dd>private Amazon ECR</dd></div>
+      <div><dt>End to end</dt><dd>about 1.5 hours</dd></div>
+    </dl>
+  </header>
+
+  <section>
+    <div class="col">
+      <h2>What it does</h2>
+      <p class="h2note">Summary</p>
+      <p>This was part two of the EKS series. I created the cluster again with <code>eksctl</code>, then cloned <code>nextwork-flask-backend</code> onto the EC2 instance. The backend takes a search query, calls the Hacker News API, formats the result as JSON and returns it. I built it with the project's <code>Dockerfile</code>, created a private ECR repository, authenticated Docker to it and pushed the image as <code>latest</code>, so the cluster had a trusted, private source to pull from instead of a public registry.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>How it is wired</h2>
+      <p class="h2note">The mechanism</p>
+      <p><strong>Why ECR instead of Docker Hub?</strong> ECR is private by default, access is controlled with the same IAM the cluster already uses, and it keeps multiple tags of the same image. For a cluster on EKS that means the nodes pull from a registry in the same account, with no public image dependency in the path.</p>
+      <p><strong>Why add <code>ec2-user</code> to the <code>docker</code> group instead of using <code>sudo</code>?</strong> The Docker daemon runs as root, so <code>ec2-user</code> got a permission error on the first build. Prefixing every command with <code>sudo</code> works, but it means running the whole Docker CLI as root forever. <code>sudo usermod -aG docker ec2-user</code> gives the user permanent access through the group the daemon's socket already trusts.</p>
+      <p><strong>What's actually in the backend?</strong> Three files matter: <code>requirements.txt</code> lists the dependencies, the <code>Dockerfile</code> uses <code>FROM</code>, <code>WORKDIR</code>, <code>COPY</code>, <code>RUN</code> and <code>CMD</code> to build on <code>python:3.9-alpine</code>, and <code>app.py</code> is the API that calls Hacker News and returns JSON.</p>
+    </div>
+
+    <figure class="fig">
+      <div class="fig-scroll">
+<svg viewBox="0 0 1244 440" role="img" aria-label="An engineer connects to an EC2 build host, which clones the backend from GitHub, builds a Docker image and pushes it to a private ECR repository. The host also runs eksctl, which creates the EKS cluster through CloudFormation. The cluster is set up to pull the image from ECR."><defs><marker id="mreq" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-app)"/></marker><marker id="mdata" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--dg-line)"/></marker><marker id="mctl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-ctl)"/></marker><marker id="mobs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-obs)"/></marker><marker id="maws" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-aws)"/></marker><marker id="mneu" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-neu)"/></marker></defs><rect x="380" y="60" width="848" height="350" rx="8" fill="none" stroke="var(--c-aws)" stroke-width="1.2" stroke-dasharray="6 5" opacity=".8"/><text x="398" y="53" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="10.5" letter-spacing="1.3" fill="var(--c-aws)">AWS ACCOUNT — EC2 · ECR · CLOUDFORMATION · EKS</text><g><rect x="16" y="110" width="136" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M21,110.65 h126 a4.4,4.4 0 0 1 4.4,4.4 v0 h-134.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="29" y="123" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><circle cx="44" cy="134" r="3.6" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M36.5,146 a7.5,6.5 0 0 1 15,0" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:engineer--><!--<image href="../assets/icons/engineer.svg" x="31" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="67" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Engineer</text><text x="29" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">SSH</text><rect x="29" y="177" width="70" height="15" rx="3" fill="var(--c-neu-s)"/><text x="35" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">build host</text></g><g><rect x="192" y="280" width="170" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-ctl)" stroke-width="1.3"/><path d="M197,280.65 h160 a4.4,4.4 0 0 1 4.4,4.4 v0 h-168.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-ctl)"/><rect x="205" y="293" width="30" height="30" rx="6" fill="var(--c-ctl-s)"/><circle cx="215" cy="301.5" r="2.3" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="215" cy="314.5" r="2.3" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="225" cy="305" r="2.3" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="215" y1="303.8" x2="215" y2="312.2" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M225,307.3 c0,4 -10,3 -10,5" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:github--><!--<image href="../assets/icons/github.svg" x="207" y="295" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="243" y="313" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">GitHub</text><text x="205" y="339" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">nextwork-flask-backend</text><rect x="205" y="347" width="46" height="15" rx="3" fill="var(--c-ctl-s)"/><text x="211" y="357.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-ctl)">source</text></g><g><rect x="404" y="110" width="200" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M409,110.65 h190 a4.4,4.4 0 0 1 4.4,4.4 v0 h-198.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="417" y="123" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><rect x="423" y="131" width="18" height="14" rx="2" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="426.5,135.5 429.5,138 426.5,140.5" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="431.5" y1="141" x2="436.5" y2="141" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:ec2--><!--<image href="../assets/icons/ec2.svg" x="419" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="455" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">EC2 build host</text><text x="417" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">git · docker · eksctl</text><rect x="417" y="177" width="150" height="15" rx="3" fill="var(--c-aws-s)"/><text x="423" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">ec2-user in docker group</text></g><g><rect x="404" y="280" width="200" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-app)" stroke-width="1.3"/><path d="M409,280.65 h190 a4.4,4.4 0 0 1 4.4,4.4 v0 h-198.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-app)"/><rect x="417" y="293" width="30" height="30" rx="6" fill="var(--c-app-s)"/><path d="M432,299.5 l8,4 v9 l-8,4 l-8,-4 v-9 z" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="424,303.5 432,307.5 440,303.5" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="432" y1="307.5" x2="432" y2="316.5" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:docker--><!--<image href="../assets/icons/docker.svg" x="419" y="295" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="455" y="313" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Backend image</text><text x="417" y="339" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">python:3.9-alpine</text><rect x="417" y="347" width="64" height="15" rx="3" fill="var(--c-app-s)"/><text x="423" y="357.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-app)">Flask API</text></g><g><rect x="680" y="280" width="200" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M685,280.65 h190 a4.4,4.4 0 0 1 4.4,4.4 v0 h-198.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="693" y="293" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><path d="M708,299.5 l8,4 v9 l-8,4 l-8,-4 v-9 z" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="700,303.5 708,307.5 716,303.5" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="708" y1="307.5" x2="708" y2="316.5" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:ecr--><!--<image href="../assets/icons/ecr.svg" x="695" y="295" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="731" y="313" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Amazon ECR</text><text x="693" y="339" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">nextwork-flask-backend</text><rect x="693" y="347" width="110" height="15" rx="3" fill="var(--c-aws-s)"/><text x="699" y="357.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">private · :latest</text></g><g><rect x="680" y="110" width="200" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M685,110.65 h190 a4.4,4.4 0 0 1 4.4,4.4 v0 h-198.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="693" y="123" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><path d="M702,130 h8 l5,5 v11 h-13 z" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="710,130 710,135 715,135" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="705" y1="139" x2="712" y2="139" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="705" y1="142.5" x2="712" y2="142.5" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:cloudformation--><!--<image href="../assets/icons/cloudformation.svg" x="695" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="731" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">CloudFormation</text><text x="693" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">cluster + node group</text><rect x="693" y="177" width="75" height="15" rx="3" fill="var(--c-aws-s)"/><text x="699" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">from eksctl</text></g><g><rect x="960" y="110" width="230" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-ctl)" stroke-width="1.3"/><path d="M965,110.65 h220 a4.4,4.4 0 0 1 4.4,4.4 v0 h-228.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-ctl)"/><rect x="973" y="123" width="30" height="30" rx="6" fill="var(--c-ctl-s)"/><circle cx="988" cy="138" r="4" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="988" cy="138" r="8" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2.6 2.6"/><!--ICON:eks--><!--<image href="../assets/icons/eks.svg" x="975" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="1011" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">EKS cluster</text><text x="973" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">node group</text><rect x="973" y="177" width="92" height="15" rx="3" fill="var(--c-ctl-s)"/><text x="979" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-ctl)">pulls from ECR</text></g><line x1="152" y1="154" x2="400" y2="154" stroke="var(--c-neu)" stroke-width="1.4" marker-end="url(#mneu)" fill="none"/><polyline points="277,280 277,172 400,172" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><line x1="504" y1="198" x2="504" y2="276" stroke="var(--c-app)" stroke-width="1.6" marker-end="url(#mreq)" fill="none"/><line x1="604" y1="324" x2="676" y2="324" stroke="var(--c-app)" stroke-width="1.6" marker-end="url(#mreq)" fill="none"/><line x1="604" y1="154" x2="676" y2="154" stroke="var(--c-aws)" stroke-width="1.4" marker-end="url(#maws)" fill="none"/><line x1="880" y1="154" x2="956" y2="154" stroke="var(--c-aws)" stroke-width="1.4" marker-end="url(#maws)" fill="none"/><polyline points="880,324 1075,324 1075,202" stroke="var(--dg-line)" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#mdata)" fill="none"/><circle cx="276" cy="154" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="276" y="157.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">1</text><circle cx="338.5" cy="172" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="338.5" y="175.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">2</text><circle cx="504" cy="237" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="504" y="240.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">3</text><circle cx="640" cy="324" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="640" y="327.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">4</text><circle cx="640" cy="154" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="640" y="157.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">5</text><circle cx="918" cy="154" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="918" y="157.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">6</text><circle cx="977.5" cy="324" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="977.5" y="327.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">7</text></svg>
+      </div>
+      <figcaption>Part two as it ran. Arrows 3 and 4 are the supply chain: build on a host I control, push to a registry only my account can read. Arrow 7 is dashed because this part stopped at the push &mdash; the pull is what the registry is for, not something I recorded here.</figcaption>
+    </figure>
+
+    <div class="wiring">
+      <div class="panel">
+        <h4>How the components communicate</h4>
+        <table class="wire">
+          <thead><tr><th>No</th><th>From &rarr; to</th><th>Mechanism</th><th>What happens</th></tr></thead>
+          <tbody>
+          <tr><td>1</td><td class="ft">Engineer &rarr; EC2 build host</td><td class="mech">SSH</td><td>Everything ran on the build host.</td></tr>
+          <tr><td>2</td><td class="ft">GitHub &rarr; EC2 build host</td><td class="mech">git clone</td><td>The backend repo, cloned onto the instance.</td></tr>
+          <tr><td>3</td><td class="ft">EC2 build host &rarr; Backend image</td><td class="mech">docker build</td><td>Built from the project's <code>Dockerfile</code> once <code>ec2-user</code> could reach the daemon.</td></tr>
+          <tr><td>4</td><td class="ft">Backend image &rarr; Amazon ECR</td><td class="mech">docker push</td><td>After <code>aws ecr get-login-password</code> piped into <code>docker login</code>.</td></tr>
+          <tr><td>5</td><td class="ft">EC2 build host &rarr; CloudFormation</td><td class="mech">eksctl create cluster</td><td>The same one-command cluster as part one, faster the second time.</td></tr>
+          <tr><td>6</td><td class="ft">CloudFormation &rarr; EKS cluster</td><td class="mech">stack resources</td><td>Control plane, VPC and node group.</td></tr>
+          <tr><td>7</td><td class="ft">Amazon ECR &rarr; EKS cluster</td><td class="mech">image pull</td><td>The registry the cluster pulls from &mdash; set up here; the Kubernetes deployment itself wasn't captured in this part.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="panel">
+          <h4>Legend</h4>
+          <div class="key">
+            <div><i style="background:var(--c-neu)"></i><span><b>Human actor</b>me, over SSH</span></div>
+            <div><i style="background:var(--c-ctl)"></i><span><b>Source &amp; cluster</b>GitHub, EKS</span></div>
+            <div><i style="background:var(--c-aws)"></i><span><b>AWS-managed</b>EC2, ECR, CloudFormation</span></div>
+            <div><i style="background:var(--c-app)"></i><span><b>The artifact</b>the backend image</span></div>
+            <div><u style="border-color:var(--c-app)"></u><span><b>Build &amp; push</b>image supply chain</span></div>
+            <div><u style="border-color:var(--c-aws)"></u><span><b>Provisioning</b>eksctl</span></div>
+            <div><u style="border-color:var(--dg-line); border-top-style:dashed"></u><span><b>Intended pull</b>not recorded in this part</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h4>What was reachable</h4>
+          <p class="surface"><b>Public &mdash;</b> nothing from the app; the image never left a private registry.<br>
+          <b>Private &mdash;</b> the ECR repository, readable through IAM in my account.<br>
+          <b>Internal &mdash;</b> the EKS nodes, in the VPC eksctl created.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What I verified, and how</h2>
+      <p class="h2note">Evidence, separated from design intent</p>
+      <p>Building something and being able to prove it works are different claims, so I've kept them separate below. <strong>Measured</strong> means I created the condition myself and recorded what happened. <strong>Observed</strong> means I looked at the running system and saw the state it was already in. <strong>By design</strong> means the configuration guarantees it, but I didn't run a test against it &mdash; better to say that plainly than dress it up as a result.</p>
+    </div>
+
+    <div class="ledger">
+
+      <div class="v-row observed">
+        <div class="v-tag">Observed</div>
+        <div>
+          <h3>The image built and landed in a private ECR repository</h3>
+          <p><code>docker build -t nextwork-flask-backend .</code> finished all five steps on <code>python:3.9-alpine</code>, and the ECR console showed the repository with one image tagged <code>latest</code>, about 40&nbsp;MB.</p>
+          <p class="v-method"><b>Method</b> Read the build output and the ECR repository's Images tab.</p>
+        </div>
+      </div>
+      <div class="v-row observed">
+        <div class="v-tag">Observed</div>
+        <div>
+          <h3>The Docker permission error was fixed at the group, not with <code>sudo</code></h3>
+          <p>The first build failed because <code>ec2-user</code> couldn't talk to the Docker daemon. After <code>sudo usermod -aG docker ec2-user</code>, Docker commands ran as the normal user.</p>
+          <p class="v-method"><b>Method</b> Re-ran the build as <code>ec2-user</code> after the group change.</p>
+        </div>
+      </div>
+      <div class="v-row design">
+        <div class="v-tag">By design</div>
+        <div>
+          <h3>The cluster pulls the image from ECR &mdash; not captured here</h3>
+          <p>The registry exists to be the cluster's image source, and ECR integrates with EKS through IAM. This part of the series ended at the push, so I'm not claiming a pod ran this image.</p>
+          <p class="v-method"><b>Method</b> No Kubernetes Deployment was recorded in this part.</p>
+        </div>
+      </div>
+
+    </div>
+    <p class="legend">Three claims. two observed, one stated as a design property rather than dressed up as a result.</p>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Proof</h2>
+      <p class="h2note">Captured during the build</p>
+    </div>
+    <div class="shots">
+      <figure>
+        <img loading="lazy" alt="git clone of nextwork-flask-backend onto the EC2 instance" src="img/git-clone.jpg">
+        <figcaption>Cloning the backend onto the build host.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="docker build output for nextwork-flask-backend finishing all five steps on python:3.9-alpine" src="img/docker-build.jpg">
+        <figcaption>The image built from the project's <code>Dockerfile</code>.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="Amazon ECR private repository nextwork-flask-backend with one image tagged latest" src="img/ecr-image.jpg">
+        <figcaption>The private ECR repository holding the <code>latest</code> image.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What actually broke</h2>
+      <p class="h2note">One failure worth keeping</p>
+      <div class="broke">
+        <article>
+          <h3><code>docker build</code> refused to run as <code>ec2-user</code></h3>
+          <p>The Docker daemon needs root-level access, and the default <code>ec2-user</code> doesn't have it, so the first build hit a permission error. <code>sudo</code> on every command would have worked and stayed wrong. Adding the user to the <code>docker</code> group fixed it permanently.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Source</h2>
+      <p class="h2note">Everything on this page came from here</p>
+      <div class="src">
+        <p>This was a guided lab using NextWork's sample backend, so there's no standalone repo; the write-up and documentation live in my portfolio repo: <a href="https://github.com/kingswanzy2020/Projects/tree/main/kubernetes/kubernetes-deployment">Projects/kubernetes/kubernetes-deployment</a>.</p>
+        <pre>aws ecr get-login-password --region &lt;region&gt; | docker login --username AWS --password-stdin &lt;account&gt;.dkr.ecr.&lt;region&gt;.amazonaws.com
+docker build -t nextwork-flask-backend .
+docker push &lt;account&gt;.dkr.ecr.&lt;region&gt;.amazonaws.com/nextwork-flask-backend:latest</pre>
+      </div>
+      <p class="stack"><b>Stack</b><br>Amazon EKS &middot; eksctl &middot; Docker &middot; Amazon ECR &middot; EC2 &middot; Linux groups &amp; permissions &middot; Flask</p>
+    </div>
+  </section>
+
+  <nav class="next" aria-label="More case studies">
+    <a href="../eks-cluster-launch/"><small>&larr; Previous</small>Launching an EKS cluster with eksctl</a>
+    <a class="r" href="../jenkins-sonarqube/"><small>Next &rarr;</small>Jenkins pipeline gated on SonarQube</a>
+  </nav>
+
+  <footer class="col">
+    Ahmed Tetteh &middot; <a href="mailto:kingsleyswanzy@gmail.com">kingsleyswanzy@gmail.com</a> &middot; <a href="https://github.com/kingswanzy2020">github.com/kingswanzy2020</a> &middot; <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a><br>
+    Static HTML and CSS. No JavaScript, no framework, no build step for the page itself.
+  </footer>
+
+</div>
+</body>
+</html>

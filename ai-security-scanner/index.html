@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Case study: a command-line scanner that sends Python source to the Gemini API with a structured security prompt and prints colour-coded, severity-rated findings with secure fixes.">
+<title>AI Security Scanner for Python</title>
+<meta name="theme-color" content="#0b1220">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@500;600&display=swap">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body class="case">
+<div class="bar">
+  <div class="wrap">
+    <a class="brand" href="../"><span class="avatar sm" aria-hidden="true">AT</span><b>Ahmed Tetteh</b><small>DevOps &middot; Platform &middot; SRE</small></a>
+    <nav>
+      <a class="back" href="../#work">&larr; All case studies</a>
+      <a href="https://github.com/kingswanzy2020">GitHub</a>
+      <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a>
+      <a href="mailto:kingsleyswanzy@gmail.com">Email</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div class="col">
+      <p class="eyebrow">Case study &mdash; AI &times; Security</p>
+      <h1>An AI security scanner for Python, with severity you can see</h1>
+      <p class="standfirst">I built a command-line scanner that sends Python source to Gemini with a structured security prompt and prints each finding &mdash; vulnerability type, why, impact and a secure fix &mdash; colour-coded by severity, so the critical one is the first thing you read.</p>
+
+      <div class="status">
+        <span class="chip">Local script, not a service</span>
+        <p>This is a script you run against a file, not a hosted tool. <code>python scanner.py</code> with a Gemini key in <code>.env</code> reproduces everything below.</p>
+      </div>
+    </div>
+
+    <dl class="spec">
+      <div><dt>Runtime</dt><dd>Python CLI, scanner.py</dd></div>
+      <div><dt>Model</dt><dd>Gemini API</dd></div>
+      <div><dt>Key</dt><dd>.env, never in code</dd></div>
+      <div><dt>Output</dt><dd>4 fields per finding</dd></div>
+      <div><dt>Severity</dt><dd>colorama, CRITICAL in red</dd></div>
+      <div><dt>Classes tested</dt><dd>SQLi · secrets · weak hashing</dd></div>
+    </dl>
+  </header>
+
+  <section>
+    <div class="col">
+      <h2>What it does</h2>
+      <p class="h2note">Summary</p>
+      <p><code>scanner.py</code> reads a Python file, sends it to Gemini with a prompt that requires four fields for every finding &mdash; the vulnerability type, why it's vulnerable, its impact, and a secure code fix &mdash; and a severity rating. An <code>add_colors_to_output</code> function then colours the response by severity with <code>colorama</code>. I ran it against deliberately vulnerable samples covering three classes that professional SAST tools look for: SQL injection, hardcoded credentials, and weak MD5 hashing.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>How it is wired</h2>
+      <p class="h2note">The mechanism</p>
+      <p><strong>Why a structured prompt?</strong> "Find security issues" gets a vague essay. Requiring the same four fields per finding makes every answer actionable &mdash; you know what's wrong, why it matters, and what to write instead &mdash; and makes the output predictable enough to colour by severity.</p>
+      <p><strong>Why colour by severity?</strong> When a file has several findings, the order you read them in matters. CRITICAL in red is the first thing your eye lands on.</p>
+      <p><strong>Why <code>.env</code> for the key?</strong> A security scanner with a hardcoded API key would flag itself. The key is loaded from <code>.env</code>, which stays out of the repository.</p>
+    </div>
+
+    <figure class="fig">
+      <div class="fig-scroll">
+<svg viewBox="0 0 1244 440" role="img" aria-label="A developer runs scanner.py against a Python file. The script loads the Gemini API key from .env, sends the source with a structured security prompt to the Gemini API, and prints the findings colour-coded by severity in the terminal."><defs><marker id="mreq" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-app)"/></marker><marker id="mdata" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--dg-line)"/></marker><marker id="mctl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-ctl)"/></marker><marker id="mobs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-obs)"/></marker><marker id="maws" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-aws)"/></marker><marker id="mneu" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-neu)"/></marker></defs><rect x="16" y="60" width="900" height="350" rx="8" fill="none" stroke="var(--c-neu)" stroke-width="1.2" stroke-dasharray="6 5" opacity=".8"/><text x="34" y="53" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="10.5" letter-spacing="1.3" fill="var(--c-neu)">MY MACHINE — VIRTUALENV</text><g><rect x="40" y="110" width="150" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M45,110.65 h140 a4.4,4.4 0 0 1 4.4,4.4 v0 h-148.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="53" y="123" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><circle cx="68" cy="134" r="3.6" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M60.5,146 a7.5,6.5 0 0 1 15,0" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:engineer--><!--<image href="../assets/icons/engineer.svg" x="55" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="91" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Developer</text><text x="53" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">before a push</text><rect x="53" y="177" width="110" height="15" rx="3" fill="var(--c-neu-s)"/><text x="59" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">python scanner.py</text></g><g><rect x="330" y="270" width="190" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M335,270.65 h180 a4.4,4.4 0 0 1 4.4,4.4 v0 h-188.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="343" y="283" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><path d="M352,290 h8 l5,5 v11 h-13 z" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="360,290 360,295 365,295" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="355" y1="299" x2="362" y2="299" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="355" y1="302.5" x2="362" y2="302.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:python--><!--<image href="../assets/icons/python.svg" x="345" y="285" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="381" y="303" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Target code</text><text x="343" y="329" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">vulnerable samples</text><rect x="343" y="337" width="127" height="15" rx="3" fill="var(--c-neu-s)"/><text x="349" y="347.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">SQLi · secrets · MD5</text></g><g><rect x="40" y="270" width="150" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M45,270.65 h140 a4.4,4.4 0 0 1 4.4,4.4 v0 h-148.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="53" y="283" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><circle cx="64" cy="298" r="4" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="68" y1="298" x2="77" y2="298" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="74" y1="298" x2="74" y2="301.5" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="77" y1="298" x2="77" y2="301" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:secrets--><!--<image href="../assets/icons/secrets.svg" x="55" y="285" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="91" y="303" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">.env</text><text x="53" y="329" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">GEMINI API key</text><rect x="53" y="337" width="87" height="15" rx="3" fill="var(--c-aws-s)"/><text x="59" y="347.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">not committed</text></g><g><rect x="240" y="110" width="190" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-app)" stroke-width="1.3"/><path d="M245,110.65 h180 a4.4,4.4 0 0 1 4.4,4.4 v0 h-188.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-app)"/><rect x="253" y="123" width="30" height="30" rx="6" fill="var(--c-app-s)"/><polyline points="265,132 260,138 265,144" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="271,132 276,138 271,144" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="269" y1="131" x2="267" y2="145" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:python--><!--<image href="../assets/icons/python.svg" x="255" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="291" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">scanner.py</text><text x="253" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">structured prompt</text><rect x="253" y="177" width="121" height="15" rx="3" fill="var(--c-app-s)"/><text x="259" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-app)">4 fields + severity</text></g><g><rect x="480" y="110" width="200" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-obs)" stroke-width="1.3"/><path d="M485,110.65 h190 a4.4,4.4 0 0 1 4.4,4.4 v0 h-198.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-obs)"/><rect x="493" y="123" width="30" height="30" rx="6" fill="var(--c-obs-s)"/><rect x="499" y="131" width="18" height="14" rx="2" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="502.5,135.5 505.5,138 502.5,140.5" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="507.5" y1="141" x2="512.5" y2="141" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:terminal--><!--<image href="../assets/icons/terminal.svg" x="495" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="531" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Terminal output</text><text x="493" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">add_colors_to_output</text><rect x="493" y="177" width="98" height="15" rx="3" fill="var(--c-obs-s)"/><text x="499" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-obs)">CRITICAL in red</text></g><g><rect x="980" y="110" width="200" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M985,110.65 h190 a4.4,4.4 0 0 1 4.4,4.4 v0 h-198.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="993" y="123" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><rect x="1001" y="131" width="14" height="14" rx="2.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="1008" cy="138" r="2.6" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="1005" y1="128.5" x2="1005" y2="131" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="1011" y1="128.5" x2="1011" y2="131" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="1005" y1="145" x2="1005" y2="147.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="1011" y1="145" x2="1011" y2="147.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:ai--><!--<image href="../assets/icons/ai.svg" x="995" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="1031" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Gemini API</text><text x="993" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">analysis</text><rect x="993" y="177" width="58" height="15" rx="3" fill="var(--c-neu-s)"/><text x="999" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">per file</text></g><line x1="190" y1="154" x2="236" y2="154" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><line x1="375" y1="270" x2="375" y2="202" stroke="var(--dg-line)" stroke-width="1.6" marker-end="url(#mdata)" fill="none"/><polyline points="190,314 295,314 295,202" stroke="var(--c-aws)" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#maws)" fill="none"/><polyline points="430,144 460,144 460,80 1080,80 1080,106" stroke="var(--c-app)" stroke-width="1.6" marker-end="url(#mreq)" fill="none"/><line x1="980" y1="154" x2="684" y2="154" stroke="var(--c-obs)" stroke-width="1.4" marker-end="url(#mobs)" fill="none"/><circle cx="213" cy="154" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="213" y="157.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">1</text><circle cx="375" cy="236" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="375" y="239.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">2</text><circle cx="295" cy="258" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="295" y="261.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">3</text><circle cx="770" cy="80" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="770" y="83.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">4</text><circle cx="832" cy="154" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="832" y="157.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">5</text></svg>
+      </div>
+      <figcaption>The scanner as it ran. Arrow 4 is the only call that leaves the machine, and it carries the code under review &mdash; worth knowing before pointing it at anything private.</figcaption>
+    </figure>
+
+    <div class="wiring">
+      <div class="panel">
+        <h4>How the components communicate</h4>
+        <table class="wire">
+          <thead><tr><th>No</th><th>From &rarr; to</th><th>Mechanism</th><th>What happens</th></tr></thead>
+          <tbody>
+          <tr><td>1</td><td class="ft">Developer &rarr; scanner.py</td><td class="mech">run</td><td>Point the scanner at a Python file.</td></tr>
+          <tr><td>2</td><td class="ft">Target code &rarr; scanner.py</td><td class="mech">read</td><td>The whole file goes into the prompt.</td></tr>
+          <tr><td>3</td><td class="ft">.env &rarr; scanner.py</td><td class="mech">load key</td><td>Read from <code>.env</code> at startup.</td></tr>
+          <tr><td>4</td><td class="ft">scanner.py &rarr; Gemini API</td><td class="mech">HTTPS API</td><td>Source plus the structured security prompt.</td></tr>
+          <tr><td>5</td><td class="ft">Gemini API &rarr; Terminal output</td><td class="mech">findings</td><td>Type, why, impact, secure fix and severity per finding; coloured before printing.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="panel">
+          <h4>Legend</h4>
+          <div class="key">
+            <div><i style="background:var(--c-neu)"></i><span><b>Local &amp; external</b>developer, files, Gemini</span></div>
+            <div><i style="background:var(--c-app)"></i><span><b>The script</b>scanner.py</span></div>
+            <div><i style="background:var(--c-aws)"></i><span><b>Secret</b>the API key</span></div>
+            <div><i style="background:var(--c-obs)"></i><span><b>Output</b>coloured findings</span></div>
+            <div><u style="border-color:var(--c-app)"></u><span><b>Model call</b>source + prompt</span></div>
+            <div><u style="border-color:var(--c-obs)"></u><span><b>Findings</b>back to the terminal</span></div>
+            <div><u style="border-color:var(--dg-line)"></u><span><b>Input</b>the file under review</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h4>What it touches</h4>
+          <p class="surface"><b>Reads &mdash;</b> the target file and <code>.env</code>.<br>
+          <b>Sends &mdash;</b> the file's source to the Gemini API &mdash; the code leaves the machine.<br>
+          <b>Writes &mdash;</b> nothing; the findings go to the terminal.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What I verified, and how</h2>
+      <p class="h2note">Evidence, separated from design intent</p>
+      <p>Building something and being able to prove it works are different claims, so I've kept them separate below. <strong>Measured</strong> means I created the condition myself and recorded what happened. <strong>Observed</strong> means I looked at the scanner's output and saw the state it was already in. <strong>By design</strong> means the configuration guarantees it, but I didn't run a test against it &mdash; better to say that plainly than dress it up as a result.</p>
+    </div>
+
+    <div class="ledger">
+
+      <div class="v-row measured">
+        <div class="v-tag">Measured</div>
+        <div>
+          <h3>All three seeded vulnerability classes were found, with fixes</h3>
+          <p>Against the vulnerable samples, the scanner reported the SQL injection (the username concatenated into the query, fixed with a parameterised query), the hardcoded password, and the weak MD5 hashing, each with an impact and a secure rewrite.</p>
+          <p class="v-method"><b>Method</b> Ran <code>python scanner.py</code> against each sample and read the findings.</p>
+        </div>
+      </div>
+      <div class="v-row observed">
+        <div class="v-tag">Observed</div>
+        <div>
+          <h3>Severity came out colour-coded</h3>
+          <p>With <code>colorama</code> in place, the SQL injection printed as <code>SEVERITY: CRITICAL</code> in red, ahead of its description and fix.</p>
+          <p class="v-method"><b>Method</b> Read the terminal output after adding the colouring function.</p>
+        </div>
+      </div>
+      <div class="v-row observed">
+        <div class="v-tag">Observed</div>
+        <div>
+          <h3>The connection worked before any scanning</h3>
+          <p>A test call returned "Hello, security scanner!", which confirmed the key from <code>.env</code> was being sent and accepted.</p>
+          <p class="v-method"><b>Method</b> Ran the connectivity check in <code>scanner.py</code>.</p>
+        </div>
+      </div>
+      <div class="v-row design">
+        <div class="v-tag">By design</div>
+        <div>
+          <h3>Findings are a model's opinion, not a proof</h3>
+          <p>An LLM can miss a vulnerability or invent one. I tested three known classes on purpose-built samples; I didn't measure false positives or false negatives on real code.</p>
+          <p class="v-method"><b>Method</b> No precision or recall measurement was done.</p>
+        </div>
+      </div>
+
+    </div>
+    <p class="legend">Four claims. one measured, two observed, one stated as a design property rather than dressed up as a result.</p>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Proof</h2>
+      <p class="h2note">From the scanner's output</p>
+    </div>
+    <div class="shots">
+      <figure>
+        <img loading="lazy" alt="python scanner.py printing Hello, security scanner! after a FutureWarning that google.generativeai support has ended" src="img/hello.jpg">
+        <figcaption>First contact &mdash; and a deprecation warning.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="Scanner output flagging the hardcoded password admin123 as a critical security issue" src="img/hardcoded.jpg">
+        <figcaption>The hardcoded password, explained.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="Scanner output for SQL injection: vulnerability type, why it is vulnerable, impact and a parameterised-query fix" src="img/sqli.jpg">
+        <figcaption>SQL injection, with the parameterised fix.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="Colour-coded scanner output with SEVERITY: CRITICAL in red for the SQL injection" src="img/critical.jpg">
+        <figcaption>Severity, colour-coded.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What actually broke</h2>
+      <p class="h2note">One failure worth keeping</p>
+      <div class="broke">
+        <article>
+          <h3>The SDK was deprecated under me</h3>
+          <p>Every run printed a <code>FutureWarning</code>: support for <code>google.generativeai</code> has ended and it won't get updates or fixes; switch to <code>google.genai</code>. The scanner worked, but on a package with no future. The later <a href="../ai-pr-review/">PR reviewer</a> uses <code>google-genai</code>; this script hasn't been moved yet.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Source</h2>
+      <p class="h2note">Everything on this page came from here</p>
+      <div class="src">
+        <p>The scanner and the vulnerable samples it runs against live here: <a href="https://github.com/kingswanzy2020/security-scanner">kingswanzy2020/security-scanner</a>.</p>
+        <pre>git clone https://github.com/kingswanzy2020/security-scanner.git
+echo "GEMINI_API_KEY=..." &gt; .env
+python scanner.py</pre>
+      </div>
+      <p class="stack"><b>Stack</b><br>Python &middot; Gemini API &middot; prompt design for structured output &middot; SQL injection &middot; secrets hygiene (.env) &middot; weak cryptography &middot; colorama &middot; CLI UX</p>
+    </div>
+  </section>
+
+  <nav class="next" aria-label="More case studies">
+    <a href="../rag-api/"><small>&larr; Previous</small>A RAG API from laptop to Kubernetes</a>
+    <a class="r" href="../delivery-scoreboard/"><small>Next &rarr;</small>DORA delivery scoreboard with DuckDB</a>
+  </nav>
+
+  <footer class="col">
+    Ahmed Tetteh &middot; <a href="mailto:kingsleyswanzy@gmail.com">kingsleyswanzy@gmail.com</a> &middot; <a href="https://github.com/kingswanzy2020">github.com/kingswanzy2020</a> &middot; <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a><br>
+    Static HTML and CSS. No JavaScript, no framework, no build step for the page itself.
+  </footer>
+
+</div>
+</body>
+</html>

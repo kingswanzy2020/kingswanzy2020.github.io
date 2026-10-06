@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Case study: an IAM policy that gives developers full control of development-tagged EC2 instances, read-only access elsewhere, and no ability to change tags, verified live and in the IAM Policy Simulator.">
+<title>IAM Tag-Based Access</title>
+<meta name="theme-color" content="#0b1220">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@500;600&display=swap">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body class="case">
+<div class="bar">
+  <div class="wrap">
+    <a class="brand" href="../"><span class="avatar sm" aria-hidden="true">AT</span><b>Ahmed Tetteh</b><small>DevOps &middot; Platform &middot; SRE</small></a>
+    <nav>
+      <a class="back" href="../#work">&larr; All case studies</a>
+      <a href="https://github.com/kingswanzy2020">GitHub</a>
+      <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a>
+      <a href="mailto:kingsleyswanzy@gmail.com">Email</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div class="col">
+      <p class="eyebrow">Case study &mdash; AWS / Security</p>
+      <h1>Tag-based least privilege for EC2 with IAM</h1>
+      <p class="standfirst">I wrote an IAM policy that lets developers do anything to EC2 instances tagged <code>development</code>, only look at everything else, and never create or delete tags &mdash; then signed in as that developer to try stopping both instances.</p>
+
+      <div class="status">
+        <span class="chip">Guided lab</span>
+        <p>I built this in my own AWS account as a guided NextWork lab. I'm not pointing you at a live endpoint &mdash; the screenshots below were captured during the build, and the JSON policy and two tagged instances recreate it. Everything below is in the past tense for that reason.</p>
+      </div>
+    </div>
+
+    <dl class="spec">
+      <div><dt>Scope</dt><dd>EC2, tagged Env</dd></div>
+      <div><dt>Policy</dt><dd>3 statements, hand-written JSON</dd></div>
+      <div><dt>Assigned to</dt><dd>an IAM user group</dd></div>
+      <div><dt>Tag tampering</dt><dd>explicit Deny</dd></div>
+      <div><dt>Verified</dt><dd>as the user + Policy Simulator</dd></div>
+      <div><dt>Sign-in</dt><dd>account alias URL</dd></div>
+    </dl>
+  </header>
+
+  <section>
+    <div class="col">
+      <h2>What it does</h2>
+      <p class="h2note">Summary</p>
+      <p>Two EC2 instances got an <code>Env</code> tag: <code>production</code> and <code>development</code>. <code>NextWorkDevEnvironmentPolicy</code> has three statements: allow <code>ec2:*</code> where <code>ec2:ResourceTag/Env</code> is <code>development</code>; allow <code>ec2:Describe*</code> on everything; deny <code>ec2:CreateTags</code> and <code>ec2:DeleteTags</code>. The policy is attached to a user group, a developer user is in the group, and the account has an alias so that user signs in at a readable URL. I tested it twice: as the user in the console, and in the IAM Policy Simulator.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>How it is wired</h2>
+      <p class="h2note">The mechanism</p>
+      <p><strong>Why tags instead of listing instance IDs?</strong> A tag makes the boundary a property of the resource. A new development instance is covered the moment it's tagged; nobody has to edit the policy.</p>
+      <p><strong>Why deny tag changes outright?</strong> If a developer could edit tags, they could tag a production instance <code>development</code> and the first statement would hand them control of it. An explicit Deny on <code>CreateTags</code> and <code>DeleteTags</code> closes that, and an explicit Deny can't be overridden by any Allow.</p>
+      <p><strong>Why attach to a group?</strong> So the policy describes a role, not a person. Onboarding a developer is adding them to the group.</p>
+      <p><strong>Why was stopping production denied, exactly?</strong> Not by the Deny statement. The only Allow for <code>StopInstances</code> carries the development tag condition, so for a production instance no statement allows it &mdash; an implicit deny. The console's error said exactly that: no identity-based policy allows the action.</p>
+    </div>
+
+    <figure class="fig">
+      <div class="fig-scroll">
+<svg viewBox="0 0 1244 560" role="img" aria-label="A developer user belongs to an IAM user group with a three-statement policy attached. Against the development-tagged instance, stop is allowed. Against the production-tagged instance, stop is implicitly denied. Creating or deleting tags is explicitly denied. The IAM Policy Simulator evaluates the same policy before it&#x27;s relied on."><defs><marker id="mreq" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-app)"/></marker><marker id="mdata" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--dg-line)"/></marker><marker id="mctl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-ctl)"/></marker><marker id="mobs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-obs)"/></marker><marker id="maws" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-aws)"/></marker><marker id="mneu" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-neu)"/></marker></defs><rect x="176" y="60" width="1052" height="470" rx="8" fill="none" stroke="var(--c-aws)" stroke-width="1.2" stroke-dasharray="6 5" opacity=".8"/><text x="194" y="53" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="10.5" letter-spacing="1.3" fill="var(--c-aws)">AWS ACCOUNT — IAM · EC2 · SIGN-IN VIA ACCOUNT ALIAS</text><g><rect x="16" y="250" width="136" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M21,250.65 h126 a4.4,4.4 0 0 1 4.4,4.4 v0 h-134.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="29" y="263" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><circle cx="44" cy="274" r="3.6" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M36.5,286 a7.5,6.5 0 0 1 15,0" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:engineer--><!--<image href="../assets/icons/engineer.svg" x="31" y="265" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="67" y="283" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Developer</text><text x="29" y="309" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">IAM user</text><rect x="29" y="317" width="87" height="15" rx="3" fill="var(--c-neu-s)"/><text x="35" y="327.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">alias sign-in</text></g><g><rect x="210" y="250" width="180" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M215,250.65 h170 a4.4,4.4 0 0 1 4.4,4.4 v0 h-178.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="223" y="263" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><circle cx="238" cy="274" r="3.6" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M230.5,286 a7.5,6.5 0 0 1 15,0" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:iam--><!--<image href="../assets/icons/iam.svg" x="225" y="265" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="261" y="283" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">User group</text><text x="223" y="309" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">developers</text><rect x="223" y="317" width="70" height="15" rx="3" fill="var(--c-aws-s)"/><text x="229" y="327.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">one policy</text></g><g><rect x="440" y="250" width="280" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M445,250.65 h270 a4.4,4.4 0 0 1 4.4,4.4 v0 h-278.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="453" y="263" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><path d="M462,270 h8 l5,5 v11 h-13 z" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="470,270 470,275 475,275" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="465" y1="279" x2="472" y2="279" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="465" y1="282.5" x2="472" y2="282.5" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:iam--><!--<image href="../assets/icons/iam.svg" x="455" y="265" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="491" y="283" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">NextWorkDevEnvironmentPolicy</text><text x="453" y="309" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">3 statements</text><rect x="453" y="317" width="35" height="15" rx="3" fill="var(--c-aws-s)"/><text x="459" y="327.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">JSON</text></g><g><rect x="830" y="96" width="210" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-app)" stroke-width="1.3"/><path d="M835,96.65 h200 a4.4,4.4 0 0 1 4.4,4.4 v0 h-208.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-app)"/><rect x="843" y="109" width="30" height="30" rx="6" fill="var(--c-app-s)"/><rect x="850" y="116" width="16" height="7" rx="1.5" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><rect x="850" y="126" width="16" height="7" rx="1.5" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="853.5" cy="119.5" r="0.9" fill="var(--c-app)"/><circle cx="853.5" cy="129.5" r="0.9" fill="var(--c-app)"/><!--ICON:ec2--><!--<image href="../assets/icons/ec2.svg" x="845" y="111" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="881" y="129" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Dev instance</text><text x="843" y="155" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">Env = development</text><rect x="843" y="163" width="87" height="15" rx="3" fill="var(--c-app-s)"/><text x="849" y="173.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-app)">ec2:* allowed</text></g><g><rect x="830" y="250" width="210" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M835,250.65 h200 a4.4,4.4 0 0 1 4.4,4.4 v0 h-208.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="843" y="263" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><rect x="850" y="270" width="16" height="7" rx="1.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><rect x="850" y="280" width="16" height="7" rx="1.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="853.5" cy="273.5" r="0.9" fill="var(--c-neu)"/><circle cx="853.5" cy="283.5" r="0.9" fill="var(--c-neu)"/><!--ICON:ec2--><!--<image href="../assets/icons/ec2.svg" x="845" y="265" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="881" y="283" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Prod instance</text><text x="843" y="309" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">Env = production</text><rect x="843" y="317" width="87" height="15" rx="3" fill="var(--c-neu-s)"/><text x="849" y="327.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">Describe only</text></g><g><rect x="830" y="404" width="210" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M835,404.65 h200 a4.4,4.4 0 0 1 4.4,4.4 v0 h-208.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="843" y="417" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><circle cx="858" cy="432" r="8.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="854.5" y1="428.5" x2="861.5" y2="435.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="861.5" y1="428.5" x2="854.5" y2="435.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:iam--><!--<image href="../assets/icons/iam.svg" x="845" y="419" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="881" y="437" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Create / DeleteTags</text><text x="843" y="463" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">any EC2 resource</text><rect x="843" y="471" width="87" height="15" rx="3" fill="var(--c-neu-s)"/><text x="849" y="481.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">explicit Deny</text></g><g><rect x="440" y="420" width="280" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-obs)" stroke-width="1.3"/><path d="M445,420.65 h270 a4.4,4.4 0 0 1 4.4,4.4 v0 h-278.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-obs)"/><rect x="453" y="433" width="30" height="30" rx="6" fill="var(--c-obs-s)"/><path d="M468,439.5 l8.5,8.5 l-8.5,8.5 l-8.5,-8.5 z" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="464.8,448 467.2,450.6 471.6,445.4" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:iam--><!--<image href="../assets/icons/iam.svg" x="455" y="435" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="491" y="453" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Policy Simulator</text><text x="453" y="479" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">StopInstances · DeleteTags</text><rect x="453" y="487" width="127" height="15" rx="3" fill="var(--c-obs-s)"/><text x="459" y="497.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-obs)">before relying on it</text></g><line x1="152" y1="294" x2="206" y2="294" stroke="var(--c-neu)" stroke-width="1.4" marker-end="url(#mneu)" fill="none"/><line x1="440" y1="294" x2="394" y2="294" stroke="var(--c-aws)" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#maws)" fill="none"/><polyline points="720,274 750,274 750,140 826,140" stroke="var(--c-app)" stroke-width="1.6" marker-end="url(#mreq)" fill="none"/><line x1="720" y1="294" x2="826" y2="294" stroke="var(--c-neu)" stroke-width="1.4" marker-end="url(#mneu)" fill="none"/><polyline points="720,314 770,314 770,448 826,448" stroke="var(--c-neu)" stroke-width="1.4" marker-end="url(#mneu)" fill="none"/><line x1="580" y1="420" x2="580" y2="342" stroke="var(--c-obs)" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#mobs)" fill="none"/><circle cx="179" cy="294" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="179" y="297.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">1</text><circle cx="417" cy="294" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="417" y="297.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">2</text><circle cx="750" cy="207" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="750" y="210.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">3</text><circle cx="773" cy="294" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="773" y="297.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">4</text><circle cx="770" cy="381" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="770" y="384.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">5</text><circle cx="580" cy="381" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="580" y="384.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">6</text></svg>
+      </div>
+      <figcaption>The policy as it evaluated. Arrows 3 to 5 are three different outcomes from one policy: an allow with a condition, an implicit deny, and an explicit deny. The second one is the one people usually call a deny statement, and it isn't.</figcaption>
+    </figure>
+
+    <div class="wiring">
+      <div class="panel">
+        <h4>How the components communicate</h4>
+        <table class="wire">
+          <thead><tr><th>No</th><th>From &rarr; to</th><th>Mechanism</th><th>What happens</th></tr></thead>
+          <tbody>
+          <tr><td>1</td><td class="ft">Developer &rarr; User group</td><td class="mech">member of</td><td>The user gets permissions only through the group.</td></tr>
+          <tr><td>2</td><td class="ft">NextWorkDevEnvironmentPolicy &rarr; User group</td><td class="mech">attached</td><td>One policy for every developer.</td></tr>
+          <tr><td>3</td><td class="ft">NextWorkDevEnvironmentPolicy &rarr; Dev instance</td><td class="mech">Allow ec2:*</td><td>Condition <code>ec2:ResourceTag/Env = development</code>. Stopping it succeeded.</td></tr>
+          <tr><td>4</td><td class="ft">NextWorkDevEnvironmentPolicy &rarr; Prod instance</td><td class="mech">no matching Allow</td><td>Only <code>Describe*</code> applies; stop was refused as an implicit deny.</td></tr>
+          <tr><td>5</td><td class="ft">NextWorkDevEnvironmentPolicy &rarr; Create / DeleteTags</td><td class="mech">explicit Deny</td><td>No re-tagging an instance into development, whatever else is allowed.</td></tr>
+          <tr><td>6</td><td class="ft">Policy Simulator &rarr; NextWorkDevEnvironmentPolicy</td><td class="mech">simulate</td><td>Evaluates the policy without touching real resources; needs the tag in its context to match the condition.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="panel">
+          <h4>Legend</h4>
+          <div class="key">
+            <div><i style="background:var(--c-neu)"></i><span><b>Actor &amp; refused targets</b>the developer, prod, tag changes</span></div>
+            <div><i style="background:var(--c-aws)"></i><span><b>IAM</b>group and policy</span></div>
+            <div><i style="background:var(--c-app)"></i><span><b>Allowed target</b>the development instance</span></div>
+            <div><i style="background:var(--c-obs)"></i><span><b>Validation</b>the Policy Simulator</span></div>
+            <div><u style="border-color:var(--c-app)"></u><span><b>Allowed</b>tag condition met</span></div>
+            <div><u style="border-color:var(--c-neu)"></u><span><b>Refused</b>implicit or explicit</span></div>
+            <div><u style="border-color:var(--c-obs); border-top-style:dashed"></u><span><b>Simulation</b>no real resources touched</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h4>What the developer could do</h4>
+          <p class="surface"><b>Development &mdash;</b> anything EC2 allows on instances tagged <code>Env = development</code>.<br>
+          <b>Everything else in EC2 &mdash;</b> <code>Describe*</code> only.<br>
+          <b>Never &mdash;</b> create or delete tags, or anything outside EC2 &mdash; most console panels showed Access Denied.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What I verified, and how</h2>
+      <p class="h2note">Evidence, separated from design intent</p>
+      <p>Building something and being able to prove it works are different claims, so I've kept them separate below. <strong>Measured</strong> means I created the condition myself and recorded what happened. <strong>Observed</strong> means I looked at the console as the developer and saw the state it was already in. <strong>By design</strong> means the configuration guarantees it, but I didn't run a test against it &mdash; better to say that plainly than dress it up as a result.</p>
+    </div>
+
+    <div class="ledger">
+
+      <div class="v-row measured">
+        <div class="v-tag">Measured</div>
+        <div>
+          <h3>Stopping production was refused; stopping development worked</h3>
+          <p>Signed in as the developer, I tried to stop the production instance and got an error saying the user isn't authorized to perform <code>ec2:StopInstances</code> because no identity-based policy allows it. Stopping the development instance went straight through.</p>
+          <p class="v-method"><b>Method</b> Attempted both stops in the EC2 console as the restricted user.</p>
+        </div>
+      </div>
+      <div class="v-row measured">
+        <div class="v-tag">Measured</div>
+        <div>
+          <h3>The simulator needed the tag in context to show the Allow</h3>
+          <p>With the resource left as <code>*</code>, the simulator returned <code>StopInstances</code> as implicitly denied (no matching statements) and <code>DeleteTags</code> as denied by one matching statement. Adding <code>ec2:ResourceTag/Env = development</code> to the simulation context turned <code>StopInstances</code> into <em>allowed</em>.</p>
+          <p class="v-method"><b>Method</b> Ran both actions in the IAM Policy Simulator, with and without the tag condition key in context.</p>
+        </div>
+      </div>
+      <div class="v-row observed">
+        <div class="v-tag">Observed</div>
+        <div>
+          <h3>Everything outside the policy defaulted to Access Denied</h3>
+          <p>Logged in as the developer, most dashboard panels showed Access Denied: anything the policy doesn't mention is denied by default.</p>
+          <p class="v-method"><b>Method</b> Browsed the console as the restricted user.</p>
+        </div>
+      </div>
+      <div class="v-row design">
+        <div class="v-tag">By design</div>
+        <div>
+          <h3>A developer can't tag their way into production</h3>
+          <p>The explicit Deny on <code>CreateTags</code> and <code>DeleteTags</code> applies to every EC2 resource, and explicit Deny wins over any Allow. The simulator showed <code>DeleteTags</code> denied; I didn't try re-tagging the production instance as the user.</p>
+          <p class="v-method"><b>Method</b> Policy Simulator for <code>DeleteTags</code>; no live re-tag attempt.</p>
+        </div>
+      </div>
+
+    </div>
+    <p class="legend">Four claims. two measured, one observed, one stated as a design property rather than dressed up as a result.</p>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Proof</h2>
+      <p class="h2note">Captured during the build</p>
+    </div>
+    <div class="shots">
+      <figure>
+        <img loading="lazy" alt="NextWorkDevEnvironmentPolicy JSON with three statements: allow ec2:* on Env development, allow ec2:Describe*, deny CreateTags and DeleteTags" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/aws/iam-cloud-security/Screenshots/Screenshot%20from%202025-11-18%2002-04-50.png">
+        <figcaption>The policy: three statements.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="EC2 error: user is not authorized to perform ec2:StopInstances on the production instance because no identity-based policy allows it" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/aws/iam-cloud-security/Screenshots/Screenshot%20from%202025-11-18%2011-44-30.png">
+        <figcaption>Stopping production: refused, with the reason.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="EC2 console showing the development instance stopping successfully" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/aws/iam-cloud-security/Screenshots/Screenshot%20from%202025-11-18%2011-59-13.png">
+        <figcaption>Stopping development: allowed.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="IAM Policy Simulator: DeleteTags denied, StopInstances allowed once ec2:ResourceTag/Env is set to development" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/aws/iam-cloud-security/Screenshots/Screenshot%20from%202025-11-18%2021-04-10.png">
+        <figcaption>The simulator with the tag in context.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What actually broke</h2>
+      <p class="h2note">One failure worth keeping</p>
+      <div class="broke">
+        <article>
+          <h3>I misread why the simulator said denied</h3>
+          <p>My first simulation of <code>StopInstances</code> came back denied, and I put it down to the Deny statement overriding the Allow. The simulator's own detail says something else: <em>implicitly denied, no matching statements</em>. With the resource set to <code>*</code> and no tag in the context, the Allow's condition can't match. Once I gave the simulation <code>ec2:ResourceTag/Env = development</code>, it showed allowed. The lesson stuck better than the policy did: read which kind of deny you got.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Source</h2>
+      <p class="h2note">Everything on this page came from here</p>
+      <div class="src">
+        <p>This was a guided lab with no standalone repo; the write-up and documentation live in my portfolio repo: <a href="https://github.com/kingswanzy2020/Projects/tree/main/aws/iam-cloud-security">Projects/aws/iam-cloud-security</a>. The follow-up on permission ceilings is the <a href="../iam-permissions-boundary/">IAM permissions boundary</a> case study.</p>
+        <pre>aws iam simulate-principal-policy \
+  --policy-source-arn arn:aws:iam::&lt;account&gt;:user/&lt;developer&gt; \
+  --action-names ec2:StopInstances ec2:DeleteTags</pre>
+      </div>
+      <p class="stack"><b>Stack</b><br>AWS IAM &middot; JSON policy authoring &middot; tag-based (ABAC-style) access &middot; condition keys &middot; users &amp; groups &middot; explicit vs implicit deny &middot; IAM Policy Simulator &middot; EC2 &middot; account aliases</p>
+    </div>
+  </section>
+
+  <nav class="next" aria-label="More case studies">
+    <a href="../cross-account-ecr/"><small>&larr; Previous</small>Sharing container images across AWS accounts</a>
+    <a class="r" href="../elastic-beanstalk-docker/"><small>Next &rarr;</small>A Docker app on Elastic Beanstalk</a>
+  </nav>
+
+  <footer class="col">
+    Ahmed Tetteh &middot; <a href="mailto:kingsleyswanzy@gmail.com">kingsleyswanzy@gmail.com</a> &middot; <a href="https://github.com/kingswanzy2020">github.com/kingswanzy2020</a> &middot; <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a><br>
+    Static HTML and CSS. No JavaScript, no framework, no build step for the page itself.
+  </footer>
+
+</div>
+</body>
+</html>

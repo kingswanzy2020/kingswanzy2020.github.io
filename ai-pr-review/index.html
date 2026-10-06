@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Case study: a GitHub Actions workflow that sends each pull request&#x27;s diff to Gemini, posts the review as a comment, and labels the PR by severity.">
+<title>AI PR Review with Gemini</title>
+<meta name="theme-color" content="#0b1220">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@500;600&display=swap">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body class="case">
+<div class="bar">
+  <div class="wrap">
+    <a class="brand" href="../"><span class="avatar sm" aria-hidden="true">AT</span><b>Ahmed Tetteh</b><small>DevOps &middot; Platform &middot; SRE</small></a>
+    <nav>
+      <a class="back" href="../#work">&larr; All case studies</a>
+      <a href="https://github.com/kingswanzy2020">GitHub</a>
+      <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a>
+      <a href="mailto:kingsleyswanzy@gmail.com">Email</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div class="col">
+      <p class="eyebrow">Case study &mdash; CI/CD / AI</p>
+      <h1>AI pull-request review with Gemini in GitHub Actions</h1>
+      <p class="standfirst">I built a workflow that sends every pull request's diff to Gemini with a structured reviewer prompt, posts the review as a PR comment, and labels the PR Critical, Warning or Good from a machine-readable severity line.</p>
+
+      <div class="status">
+        <span class="chip">CI workflow</span>
+        <p>This is a workflow in a repository, not a hosted bot. It runs on GitHub's runners whenever a pull request against <code>main</code> is opened or updated. Everything below describes the PRs I opened to test it.</p>
+      </div>
+    </div>
+
+    <dl class="spec">
+      <div><dt>Trigger</dt><dd>pull_request &rarr; main</dd></div>
+      <div><dt>Model</dt><dd>Gemini 2.5 via google-genai</dd></div>
+      <div><dt>Output</dt><dd>PR comment via github-script</dd></div>
+      <div><dt>Triage</dt><dd>Critical / Warning / Good labels</dd></div>
+      <div><dt>Secret</dt><dd>API key in GitHub Secrets</dd></div>
+      <div><dt>Permissions</dt><dd>contents: read, PRs: write</dd></div>
+    </dl>
+  </header>
+
+  <section>
+    <div class="col">
+      <h2>What it does</h2>
+      <p class="h2note">Summary</p>
+      <p><code>ai_review.py</code> takes a diff and asks Gemini to review it as a code reviewer, returning a summary, security issues, bugs, performance notes, a score and a fix for each finding. I tested it locally against a sample diff first. The workflow checks out the PR with full history, generates the diff, runs the script with the key from GitHub Secrets, and posts the result with <code>github-script</code>. As an extension, the prompt also asks for a single <code>SEVERITY_SUMMARY</code> line that the workflow parses to apply one of three labels.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>How it is wired</h2>
+      <p class="h2note">The mechanism</p>
+      <p><strong>Why test the script locally before automating it?</strong> If the prompt or the parsing is wrong, a workflow just makes the wrong answer arrive faster. I ran <code>ai_review.py</code> against <code>sample_diff.txt</code> first and checked it found the SQL injection the sample was built around before wiring it to pull requests.</p>
+      <p><strong>Why a <code>SEVERITY_SUMMARY</code> line?</strong> Free-text reviews are for people; a workflow needs one thing it can parse. Asking the model for a single machine-readable line means the label step doesn't have to interpret prose, and a reviewer can sort open PRs by label without opening them.</p>
+      <p><strong>Why GitHub Secrets for the key?</strong> The key authenticates every request against my quota. In a public repository it would be both a cost and an access risk, so it lives in Secrets and reaches the script as an environment variable.</p>
+      <p><strong>Why does the job only get <code>pull-requests: write</code>?</strong> It needs to read code and write a comment and a label, and nothing else. The workflow's <code>permissions</code> block says exactly that.</p>
+    </div>
+
+    <figure class="fig">
+      <div class="fig-scroll">
+<svg viewBox="0 0 1244 470" role="img" aria-label="Opening or updating a pull request triggers a GitHub Actions workflow, which checks out the code, generates the diff and runs ai_review.py. The script sends the prompt and diff to the Gemini API using a key from GitHub Secrets. The review is posted back as a PR comment, and the parsed severity line applies a Critical, Warning or Good label."><defs><marker id="mreq" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-app)"/></marker><marker id="mdata" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--dg-line)"/></marker><marker id="mctl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-ctl)"/></marker><marker id="mobs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-obs)"/></marker><marker id="maws" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-aws)"/></marker><marker id="mneu" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-neu)"/></marker></defs><rect x="384" y="60" width="644" height="380" rx="8" fill="none" stroke="var(--c-ctl)" stroke-width="1.2" stroke-dasharray="6 5" opacity=".8"/><text x="402" y="53" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="10.5" letter-spacing="1.3" fill="var(--c-ctl)">GITHUB ACTIONS — pr-review.yml · ubuntu-latest</text><g><rect x="16" y="110" width="136" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M21,110.65 h126 a4.4,4.4 0 0 1 4.4,4.4 v0 h-134.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="29" y="123" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><circle cx="44" cy="134" r="3.6" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M36.5,146 a7.5,6.5 0 0 1 15,0" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:engineer--><!--<image href="../assets/icons/engineer.svg" x="31" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="67" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Developer</text><text x="29" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">opens / updates</text><rect x="29" y="177" width="81" height="15" rx="3" fill="var(--c-neu-s)"/><text x="35" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">pull request</text></g><g><rect x="192" y="110" width="160" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-ctl)" stroke-width="1.3"/><path d="M197,110.65 h150 a4.4,4.4 0 0 1 4.4,4.4 v0 h-158.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-ctl)"/><rect x="205" y="123" width="30" height="30" rx="6" fill="var(--c-ctl-s)"/><circle cx="215" cy="131.5" r="2.3" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="215" cy="144.5" r="2.3" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="225" cy="135" r="2.3" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="215" y1="133.8" x2="215" y2="142.2" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M225,137.3 c0,4 -10,3 -10,5" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:github--><!--<image href="../assets/icons/github.svg" x="207" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="243" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Pull request</text><text x="205" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">into main</text><rect x="205" y="177" width="104" height="15" rx="3" fill="var(--c-ctl-s)"/><text x="211" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-ctl)">on: pull_request</text></g><g><rect x="408" y="110" width="170" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-ctl)" stroke-width="1.3"/><path d="M413,110.65 h160 a4.4,4.4 0 0 1 4.4,4.4 v0 h-168.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-ctl)"/><rect x="421" y="123" width="30" height="30" rx="6" fill="var(--c-ctl-s)"/><path d="M430,130 h8 l5,5 v11 h-13 z" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="438,130 438,135 443,135" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="433" y1="139" x2="440" y2="139" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="433" y1="142.5" x2="440" y2="142.5" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:github-actions--><!--<image href="../assets/icons/github-actions.svg" x="423" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="459" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Get PR diff</text><text x="421" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">fetch-depth: 0</text><rect x="421" y="177" width="58" height="15" rx="3" fill="var(--c-ctl-s)"/><text x="427" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-ctl)">git diff</text></g><g><rect x="620" y="110" width="176" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-app)" stroke-width="1.3"/><path d="M625,110.65 h166 a4.4,4.4 0 0 1 4.4,4.4 v0 h-174.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-app)"/><rect x="633" y="123" width="30" height="30" rx="6" fill="var(--c-app-s)"/><polyline points="645,132 640,138 645,144" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="651,132 656,138 651,144" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="649" y1="131" x2="647" y2="145" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:python--><!--<image href="../assets/icons/python.svg" x="635" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="671" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">ai_review.py</text><text x="633" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">structured prompt</text><rect x="633" y="177" width="81" height="15" rx="3" fill="var(--c-app-s)"/><text x="639" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-app)">google-genai</text></g><g><rect x="660" y="290" width="176" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M665,290.65 h166 a4.4,4.4 0 0 1 4.4,4.4 v0 h-174.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="673" y="303" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><circle cx="684" cy="318" r="4" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="688" y1="318" x2="697" y2="318" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="694" y1="318" x2="694" y2="321.5" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="697" y1="318" x2="697" y2="321" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:secrets--><!--<image href="../assets/icons/secrets.svg" x="675" y="305" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="711" y="323" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">GitHub Secrets</text><text x="673" y="349" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">GEMINI_API_KEY</text><rect x="673" y="357" width="52" height="15" rx="3" fill="var(--c-aws-s)"/><text x="679" y="367.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">env var</text></g><g><rect x="1044" y="110" width="176" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M1049,110.65 h166 a4.4,4.4 0 0 1 4.4,4.4 v0 h-174.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="1057" y="123" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><rect x="1065" y="131" width="14" height="14" rx="2.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="1072" cy="138" r="2.6" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="1069" y1="128.5" x2="1069" y2="131" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="1075" y1="128.5" x2="1075" y2="131" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="1069" y1="145" x2="1069" y2="147.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="1075" y1="145" x2="1075" y2="147.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:ai--><!--<image href="../assets/icons/ai.svg" x="1059" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="1095" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Gemini 2.5</text><text x="1057" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">Gemini API</text><rect x="1057" y="177" width="46" height="15" rx="3" fill="var(--c-neu-s)"/><text x="1063" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">review</text></g><g><rect x="866" y="290" width="150" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-obs)" stroke-width="1.3"/><path d="M871,290.65 h140 a4.4,4.4 0 0 1 4.4,4.4 v0 h-148.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-obs)"/><rect x="879" y="303" width="30" height="30" rx="6" fill="var(--c-obs-s)"/><path d="M886,312 h16 v10 h-9 l-4,3.5 v-3.5 h-3 z" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="890" y1="316" x2="898" y2="316" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="890" y1="319" x2="895" y2="319" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:github--><!--<image href="../assets/icons/github.svg" x="881" y="305" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="917" y="323" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">PR comment</text><text x="879" y="349" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">github-script</text><rect x="879" y="357" width="92" height="15" rx="3" fill="var(--c-obs-s)"/><text x="885" y="367.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-obs)">AI Code Review</text></g><g><rect x="408" y="290" width="170" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-obs)" stroke-width="1.3"/><path d="M413,290.65 h160 a4.4,4.4 0 0 1 4.4,4.4 v0 h-168.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-obs)"/><rect x="421" y="303" width="30" height="30" rx="6" fill="var(--c-obs-s)"/><path d="M428,311 h16 l-6,7.5 v7 l-4,-2 v-5 z" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:github--><!--<image href="../assets/icons/github.svg" x="423" y="305" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="459" y="323" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Severity label</text><text x="421" y="349" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">SEVERITY_SUMMARY</text><rect x="421" y="357" width="133" height="15" rx="3" fill="var(--c-obs-s)"/><text x="427" y="367.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-obs)">Critical/Warning/Good</text></g><line x1="152" y1="154" x2="188" y2="154" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><line x1="352" y1="154" x2="404" y2="154" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><line x1="578" y1="154" x2="616" y2="154" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><line x1="748" y1="290" x2="748" y2="202" stroke="var(--c-aws)" stroke-width="1.4" marker-end="url(#maws)" fill="none"/><line x1="796" y1="154" x2="1040" y2="154" stroke="var(--c-app)" stroke-width="1.6" marker-end="url(#mreq)" fill="none"/><polyline points="1132,198 1132,334 1020,334" stroke="var(--c-obs)" stroke-width="1.4" marker-end="url(#mobs)" fill="none"/><polyline points="648,198 648,334 582,334" stroke="var(--c-obs)" stroke-width="1.4" marker-end="url(#mobs)" fill="none"/><circle cx="170" cy="154" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="170" y="157.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">1</text><circle cx="378" cy="154" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="378" y="157.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">2</text><circle cx="597" cy="154" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="597" y="157.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">3</text><circle cx="748" cy="246" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="748" y="249.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">4</text><circle cx="918" cy="154" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="918" y="157.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">5</text><circle cx="1132" cy="266" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="1132" y="269.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">6</text><circle cx="648" cy="266" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="648" y="269.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">7</text></svg>
+      </div>
+      <figcaption>The workflow as it ran. Arrow 5 is the only call that leaves GitHub. Arrows 6 and 7 are the two outputs: one for a person to read, one for a person to sort by.</figcaption>
+    </figure>
+
+    <div class="wiring">
+      <div class="panel">
+        <h4>How the components communicate</h4>
+        <table class="wire">
+          <thead><tr><th>No</th><th>From &rarr; to</th><th>Mechanism</th><th>What happens</th></tr></thead>
+          <tbody>
+          <tr><td>1</td><td class="ft">Developer &rarr; Pull request</td><td class="mech">opened / synchronize</td><td>Any PR against <code>main</code> starts the workflow.</td></tr>
+          <tr><td>2</td><td class="ft">Pull request &rarr; Get PR diff</td><td class="mech">checkout</td><td>Full history so the diff against the base is complete.</td></tr>
+          <tr><td>3</td><td class="ft">Get PR diff &rarr; ai_review.py</td><td class="mech">diff text</td><td>Passed to <code>review_code(diff_text)</code>.</td></tr>
+          <tr><td>4</td><td class="ft">GitHub Secrets &rarr; ai_review.py</td><td class="mech">env var</td><td>The API key, never in the YAML or the repo.</td></tr>
+          <tr><td>5</td><td class="ft">ai_review.py &rarr; Gemini 2.5</td><td class="mech">HTTPS API</td><td>Prompt plus diff; asks for summary, security, bugs, performance, score and fixes.</td></tr>
+          <tr><td>6</td><td class="ft">Gemini 2.5 &rarr; PR comment</td><td class="mech">review text</td><td>Posted to the PR as an <em>AI Code Review</em> comment.</td></tr>
+          <tr><td>7</td><td class="ft">ai_review.py &rarr; Severity label</td><td class="mech">parse line</td><td>High &rarr; Critical, Medium &rarr; Warning, clean &rarr; Good.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="panel">
+          <h4>Legend</h4>
+          <div class="key">
+            <div><i style="background:var(--c-neu)"></i><span><b>Outside the workflow</b>developer, Gemini</span></div>
+            <div><i style="background:var(--c-ctl)"></i><span><b>Trigger &amp; steps</b>the PR, checkout, diff</span></div>
+            <div><i style="background:var(--c-app)"></i><span><b>The script</b>ai_review.py</span></div>
+            <div><i style="background:var(--c-aws)"></i><span><b>Secret</b>the API key</span></div>
+            <div><i style="background:var(--c-obs)"></i><span><b>Outputs</b>comment and label</span></div>
+            <div><u style="border-color:var(--c-ctl)"></u><span><b>Workflow flow</b>PR to script</span></div>
+            <div><u style="border-color:var(--c-app)"></u><span><b>Model call</b>the only external request</span></div>
+            <div><u style="border-color:var(--c-obs)"></u><span><b>Results</b>written back to the PR</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h4>What it touches</h4>
+          <p class="surface"><b>Reads &mdash;</b> the pull request's diff.<br>
+          <b>Calls &mdash;</b> the Gemini API, with a key from GitHub Secrets.<br>
+          <b>Writes &mdash;</b> one comment and one label on the PR, under <code>pull-requests: write</code>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What I verified, and how</h2>
+      <p class="h2note">Evidence, separated from design intent</p>
+      <p>Building something and being able to prove it works are different claims, so I've kept them separate below. <strong>Measured</strong> means I created the condition myself and recorded what happened. <strong>Observed</strong> means I looked at the pull requests and saw the state it was already in. <strong>By design</strong> means the configuration guarantees it, but I didn't run a test against it &mdash; better to say that plainly than dress it up as a result.</p>
+    </div>
+
+    <div class="ledger">
+
+      <div class="v-row measured">
+        <div class="v-tag">Measured</div>
+        <div>
+          <h3>The script found the SQL injection in the sample diff before any automation</h3>
+          <p>Run locally against <code>sample_diff.txt</code>, the review flagged the <code>get_user</code> function for building its SQL query with an f-string from the username &mdash; a SQL injection &mdash; and also called out the database connection never being closed.</p>
+          <p class="v-method"><b>Method</b> Ran <code>python scripts/ai_review.py scripts/sample_diff.txt</code> and read the output.</p>
+        </div>
+      </div>
+      <div class="v-row measured">
+        <div class="v-tag">Measured</div>
+        <div>
+          <h3>A PR with <code>shell=True</code> on user input was flagged High and labelled Critical</h3>
+          <p>I opened a PR adding <code>dangerous.py</code>, which passes user input to <code>subprocess.call(..., shell=True)</code>. The workflow's comment led with a shell injection finding at severity HIGH, and the PR got the Critical label.</p>
+          <p class="v-method"><b>Method</b> Opened the test PR and read the bot's comment and the applied label.</p>
+        </div>
+      </div>
+      <div class="v-row observed">
+        <div class="v-tag">Observed</div>
+        <div>
+          <h3>It flagged my own script too</h3>
+          <p>The reviewer pointed at a shell-injection path and a hardcoded-key risk in my own code. I fixed both &mdash; the shell interpreter off, the key moved to an environment variable &mdash; and the re-review no longer raised them.</p>
+          <p class="v-method"><b>Method</b> Read the review on the PR before and after the fix.</p>
+        </div>
+      </div>
+      <div class="v-row design">
+        <div class="v-tag">By design</div>
+        <div>
+          <h3>The key never appears in the repository</h3>
+          <p>It's read from GitHub Secrets as an environment variable in the job. I didn't audit every log line for masking failures; GitHub masks registered secrets in logs.</p>
+          <p class="v-method"><b>Method</b> Reviewed <code>pr-review.yml</code>'s <code>env</code> block.</p>
+        </div>
+      </div>
+
+    </div>
+    <p class="legend">Four claims. two measured, one observed, one stated as a design property rather than dressed up as a result.</p>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Proof</h2>
+      <p class="h2note">From the pull requests</p>
+    </div>
+    <div class="shots">
+      <figure>
+        <img loading="lazy" alt="Terminal output of ai_review.py flagging a SQL injection in get_user and a database connection resource leak" src="img/local-review.jpg">
+        <figcaption>The local run on the sample diff: SQL injection and a connection leak.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="pr-review.yml workflow: on pull_request to main, permissions contents read and pull-requests write, checkout with fetch-depth 0" src="img/workflow.jpg">
+        <figcaption><code>pr-review.yml</code>: trigger and permissions.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="github-actions bot comment AI Code Review: Shell Injection Vulnerability in dangerous.py, severity HIGH" src="img/critical-pr.jpg">
+        <figcaption>The bot's review: shell injection, severity HIGH.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="AI Code Review comment on a test pull request with security, bugs, performance, a score of 30/100 and fixes" src="img/review-comment.jpg">
+        <figcaption>A full review: findings, a score and a fix for each.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What actually broke</h2>
+      <p class="h2note">One failure worth keeping</p>
+      <div class="broke">
+        <article>
+          <h3>Building the workflow was harder than the script</h3>
+          <p>The script worked locally on the first real run. Wiring it into a pull-request workflow &mdash; checkout depth, getting the diff into the script, posting through <code>github-script</code> &mdash; took most of the four hours. The model was the easy part.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Source</h2>
+      <p class="h2note">Everything on this page came from here</p>
+      <div class="src">
+        <p>The workflow and <code>ai_review.py</code> live in the same repository as my <a href="../github-actions-ci/">first GitHub Actions workflow</a>, along with the deliberately vulnerable sample used to prove the pipeline catches it: <a href="https://github.com/kingswanzy2020/ai-cicd-github">kingswanzy2020/ai-cicd-github</a>.</p>
+        <pre>git clone https://github.com/kingswanzy2020/ai-cicd-github.git</pre>
+      </div>
+      <p class="stack"><b>Stack</b><br>GitHub Actions &middot; Gemini API (google-genai) &middot; prompt design for structured output &middot; github-script &middot; GitHub Secrets &middot; workflow permissions &middot; security review automation &middot; Python</p>
+    </div>
+  </section>
+
+  <nav class="next" aria-label="More case studies">
+    <a href="../rag-semantic-ci/"><small>&larr; Previous</small>Semantic tests for a RAG API in GitHub Actions</a>
+    <a class="r" href="../github-actions-ci/"><small>Next &rarr;</small>CI fundamentals with GitHub Actions</a>
+  </nav>
+
+  <footer class="col">
+    Ahmed Tetteh &middot; <a href="mailto:kingsleyswanzy@gmail.com">kingsleyswanzy@gmail.com</a> &middot; <a href="https://github.com/kingswanzy2020">github.com/kingswanzy2020</a> &middot; <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a><br>
+    Static HTML and CSS. No JavaScript, no framework, no build step for the page itself.
+  </footer>
+
+</div>
+</body>
+</html>

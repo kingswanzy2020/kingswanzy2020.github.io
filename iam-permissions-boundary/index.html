@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Case study: a customer-managed policy attached as an IAM role&#x27;s permissions boundary, proven with the policy simulator before and after, with every outcome predicted in advance.">
+<title>IAM Permissions Boundary</title>
+<meta name="theme-color" content="#0b1220">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@500;600&display=swap">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body class="case">
+<div class="bar">
+  <div class="wrap">
+    <a class="brand" href="../"><span class="avatar sm" aria-hidden="true">AT</span><b>Ahmed Tetteh</b><small>DevOps &middot; Platform &middot; SRE</small></a>
+    <nav>
+      <a class="back" href="../#work">&larr; All case studies</a>
+      <a href="https://github.com/kingswanzy2020">GitHub</a>
+      <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a>
+      <a href="mailto:kingsleyswanzy@gmail.com">Email</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div class="col">
+      <p class="eyebrow">Case study &mdash; AWS / Security</p>
+      <h1>An IAM permissions boundary as a ceiling on a role</h1>
+      <p class="standfirst">I attached a customer-managed policy to an IAM role as its permissions boundary and used the policy simulator to evaluate the same widened identity policy before and after: <code>iam:CreatePolicyVersion</code> went from allowed to denied by the boundary, without the widening ever being attached.</p>
+
+      <div class="status">
+        <span class="chip">Decommissioned</span>
+        <p>Both IAM resources were deleted at the end &mdash; the boundary removed first, then the policy and the role &mdash; and two <code>NoSuchEntity</code> reads confirmed they were gone. Nothing was ever attached to a principal that could act. The policy files and the full simulator output in the repo reproduce every result; IAM and the simulator cost nothing.</p>
+      </div>
+    </div>
+
+    <dl class="spec">
+      <div><dt>Role</dt><dd>BoundaryProofRole, inert</dd></div>
+      <div><dt>Ceiling</dt><dd>BoundaryProofCeiling, 7 actions</dd></div>
+      <div><dt>Test</dt><dd>simulate-principal-policy, twice</dd></div>
+      <div><dt>Widening</dt><dd>never attached, input only</dd></div>
+      <div><dt>Predictions</dt><dd>8/8, committed first</dd></div>
+      <div><dt>Cost</dt><dd>0.00 USD, ~90 minutes</dd></div>
+    </dl>
+  </header>
+
+  <section>
+    <div class="col">
+      <h2>What it does</h2>
+      <p class="h2note">Summary</p>
+      <p>Identity policies grow one reviewed change at a time, and one added statement &mdash; <code>iam:CreatePolicyVersion</code> &mdash; is enough to let a role rewrite the policy meant to restrict it. A permissions boundary sets a ceiling regardless of what gets attached later. I created an inert role, wrote <code>widened.json</code> as a proposed identity policy, and simulated it against the role with no boundary: <code>CreatePolicyVersion</code> against <code>BoundaryProofCeiling</code> came back <code>allowed</code>. Then I set <code>BoundaryProofCeiling</code> as the role's boundary and ran the identical simulation: <code>implicitDeny</code>, with <code>AllowedByPermissionsBoundary: false</code>.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>How it is wired</h2>
+      <p class="h2note">The mechanism</p>
+      <p><strong>Why simulate instead of trying the actions?</strong> Firing real IAM mutations to see whether they're blocked changes the account you're trying to protect. <code>simulate-principal-policy --policy-source-arn &lt;role&gt; --policy-input-list file://widened.json</code> evaluates a proposed policy in the role's context, including its current boundary, and the widening never touches a live principal.</p>
+      <p><strong>Why run the unbounded case at all?</strong> Without it, a later deny could just mean the action was never grantable, and the boundary would get credit it didn't earn. The role, policy, action and resource are identical in both runs; the boundary is the only thing that changes.</p>
+      <p><strong>Why read <code>AllowedByPermissionsBoundary</code>, not just the decision?</strong> With the boundary attached, <code>CreatePolicyVersion</code> and <code>ListUsers</code> both return <code>implicitDeny</code>. Only the boundary flag (<code>false</code> versus <code>true</code>) shows the ceiling caused one and a missing grant caused the other.</p>
+      <p><strong>Why is the role inert?</strong> Its trust policy names <code>ec2.amazonaws.com</code> with no instance profile and it has no attached policies, so it exists as a policy source and boundary target but nothing can assume it and it holds no permissions.</p>
+    </div>
+
+    <figure class="fig">
+      <div class="fig-scroll">
+<svg viewBox="0 0 1244 560" role="img" aria-label="widened.json, a proposed identity policy, is simulated against BoundaryProofRole twice. Before: with no boundary, CreatePolicyVersion is allowed. Then put-role-permissions-boundary sets BoundaryProofCeiling as the role&#x27;s boundary. After: CreatePolicyVersion is implicitly denied with AllowedByPermissionsBoundary false, GetRole stays allowed, five role mutations are explicitly denied, and ListUsers is implicitly denied. Predictions committed before the build are scored 8 of 8."><defs><marker id="mreq" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-app)"/></marker><marker id="mdata" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--dg-line)"/></marker><marker id="mctl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-ctl)"/></marker><marker id="mobs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-obs)"/></marker><marker id="maws" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-aws)"/></marker><marker id="mneu" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-neu)"/></marker></defs><rect x="176" y="60" width="1052" height="470" rx="8" fill="none" stroke="var(--c-aws)" stroke-width="1.2" stroke-dasharray="6 5" opacity=".8"/><text x="194" y="53" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="10.5" letter-spacing="1.3" fill="var(--c-aws)">AWS ACCOUNT — IAM ONLY · NOTHING ATTACHED TO AN ACTIVE PRINCIPAL</text><g><rect x="16" y="420" width="136" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M21,420.65 h126 a4.4,4.4 0 0 1 4.4,4.4 v0 h-134.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="29" y="433" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><path d="M38,440 h8 l5,5 v11 h-13 z" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="46,440 46,445 51,445" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="41" y1="449" x2="48" y2="449" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="41" y1="452.5" x2="48" y2="452.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:doc--><!--<image href="../assets/icons/doc.svg" x="31" y="435" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="67" y="453" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">predictions</text><text x="29" y="479" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">8 rows, CSV</text><rect x="29" y="487" width="98" height="15" rx="3" fill="var(--c-neu-s)"/><text x="35" y="497.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">committed first</text></g><g><rect x="16" y="200" width="136" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-ctl)" stroke-width="1.3"/><path d="M21,200.65 h126 a4.4,4.4 0 0 1 4.4,4.4 v0 h-134.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-ctl)"/><rect x="29" y="213" width="30" height="30" rx="6" fill="var(--c-ctl-s)"/><path d="M38,220 h8 l5,5 v11 h-13 z" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="46,220 46,225 51,225" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="41" y1="229" x2="48" y2="229" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="41" y1="232.5" x2="48" y2="232.5" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:json--><!--<image href="../assets/icons/json.svg" x="31" y="215" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="67" y="233" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">widened.json</text><text x="29" y="259" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">proposed policy</text><rect x="29" y="267" width="70" height="15" rx="3" fill="var(--c-ctl-s)"/><text x="35" y="277.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-ctl)">input only</text></g><g><rect x="210" y="200" width="200" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M215,200.65 h190 a4.4,4.4 0 0 1 4.4,4.4 v0 h-198.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="223" y="213" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><circle cx="234" cy="228" r="4" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="238" y1="228" x2="247" y2="228" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="244" y1="228" x2="244" y2="231.5" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="247" y1="228" x2="247" y2="231" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:iam--><!--<image href="../assets/icons/iam.svg" x="225" y="215" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="261" y="233" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">BoundaryProofRole</text><text x="223" y="259" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">trusts ec2 · no profile</text><rect x="223" y="267" width="75" height="15" rx="3" fill="var(--c-aws-s)"/><text x="229" y="277.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">no policies</text></g><g><rect x="210" y="420" width="200" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M215,420.65 h190 a4.4,4.4 0 0 1 4.4,4.4 v0 h-198.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="223" y="433" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><path d="M238,439.5 l7,3 v5 c0,5 -3.5,8 -7,9.5 c-3.5,-1.5 -7,-4.5 -7,-9.5 v-5 z" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="235,448.5 237.5,451 241.5,446" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:iam--><!--<image href="../assets/icons/iam.svg" x="225" y="435" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="261" y="453" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">BoundaryProofCeiling</text><text x="223" y="479" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">7 reviewed IAM actions</text><rect x="223" y="487" width="138" height="15" rx="3" fill="var(--c-aws-s)"/><text x="229" y="497.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">no CreatePolicyVersion</text></g><g><rect x="470" y="200" width="210" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-obs)" stroke-width="1.3"/><path d="M475,200.65 h200 a4.4,4.4 0 0 1 4.4,4.4 v0 h-208.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-obs)"/><rect x="483" y="213" width="30" height="30" rx="6" fill="var(--c-obs-s)"/><path d="M498,219.5 l8.5,8.5 l-8.5,8.5 l-8.5,-8.5 z" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="494.8,228 497.2,230.6 501.6,225.4" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:iam--><!--<image href="../assets/icons/iam.svg" x="485" y="215" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="521" y="233" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Policy simulator</text><text x="483" y="259" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">simulate-principal-policy</text><rect x="483" y="267" width="64" height="15" rx="3" fill="var(--c-obs-s)"/><text x="489" y="277.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-obs)">run twice</text></g><g><rect x="760" y="96" width="220" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M765,96.65 h210 a4.4,4.4 0 0 1 4.4,4.4 v0 h-218.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="773" y="109" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><circle cx="788" cy="124" r="8.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="784.5" y1="120.5" x2="791.5" y2="127.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="791.5" y1="120.5" x2="784.5" y2="127.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:iam--><!--<image href="../assets/icons/iam.svg" x="775" y="111" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="811" y="129" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Before: no boundary</text><text x="773" y="155" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">CreatePolicyVersion</text><rect x="773" y="163" width="52" height="15" rx="3" fill="var(--c-neu-s)"/><text x="779" y="173.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">allowed</text></g><g><rect x="760" y="304" width="220" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-obs)" stroke-width="1.3"/><path d="M765,304.65 h210 a4.4,4.4 0 0 1 4.4,4.4 v0 h-218.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-obs)"/><rect x="773" y="317" width="30" height="30" rx="6" fill="var(--c-obs-s)"/><path d="M788,323.5 l7,3 v5 c0,5 -3.5,8 -7,9.5 c-3.5,-1.5 -7,-4.5 -7,-9.5 v-5 z" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="785,332.5 787.5,335 791.5,330" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:iam--><!--<image href="../assets/icons/iam.svg" x="775" y="319" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="811" y="337" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">After: ceiling attached</text><text x="773" y="363" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">AllowedByPermissionsBoundary</text><rect x="773" y="371" width="127" height="15" rx="3" fill="var(--c-obs-s)"/><text x="779" y="381.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-obs)">false → implicitDeny</text></g><g><rect x="1030" y="304" width="180" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-obs)" stroke-width="1.3"/><path d="M1035,304.65 h170 a4.4,4.4 0 0 1 4.4,4.4 v0 h-178.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-obs)"/><rect x="1043" y="317" width="30" height="30" rx="6" fill="var(--c-obs-s)"/><path d="M1058,323.5 l8.5,8.5 l-8.5,8.5 l-8.5,-8.5 z" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="1054.8,332 1057.2,334.6 1061.6,329.4" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:assert--><!--<image href="../assets/icons/assert.svg" x="1045" y="319" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="1081" y="337" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Scored</text><text x="1043" y="363" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">expected vs simulated</text><rect x="1043" y="371" width="41" height="15" rx="3" fill="var(--c-obs-s)"/><text x="1049" y="381.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-obs)">8 / 8</text></g><line x1="152" y1="244" x2="206" y2="244" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><line x1="410" y1="244" x2="466" y2="244" stroke="var(--c-aws)" stroke-width="1.4" marker-end="url(#maws)" fill="none"/><polyline points="680,224 718,224 718,140 756,140" stroke="var(--c-neu)" stroke-width="1.4" marker-end="url(#mneu)" fill="none"/><line x1="310" y1="420" x2="310" y2="292" stroke="var(--c-aws)" stroke-width="1.4" marker-end="url(#maws)" fill="none"/><polyline points="680,264 718,264 718,348 756,348" stroke="var(--c-obs)" stroke-width="1.4" marker-end="url(#mobs)" fill="none"/><line x1="980" y1="348" x2="1026" y2="348" stroke="var(--c-obs)" stroke-width="1.4" marker-end="url(#mobs)" fill="none"/><polyline points="152,464 192,464 192,516 1120,516 1120,396" stroke="var(--c-neu)" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#mneu)" fill="none"/><circle cx="179" cy="244" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="179" y="247.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">1</text><circle cx="438" cy="244" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="438" y="247.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">2</text><circle cx="718" cy="182" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="718" y="185.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">3</text><circle cx="310" cy="356" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="310" y="359.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">4</text><circle cx="718" cy="306" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="718" y="309.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">5</text><circle cx="1003" cy="348" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="1003" y="351.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">6</text><circle cx="656" cy="516" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="656" y="519.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">7</text></svg>
+      </div>
+      <figcaption>The proof as it ran. Arrows 3 and 5 are the same simulation; arrow 4 happens between them and is the only difference. Arrow 7 is why the 8/8 means something &mdash; the expected outcomes were committed before anything existed to test.</figcaption>
+    </figure>
+
+    <div class="wiring">
+      <div class="panel">
+        <h4>How the components communicate</h4>
+        <table class="wire">
+          <thead><tr><th>No</th><th>From &rarr; to</th><th>Mechanism</th><th>What happens</th></tr></thead>
+          <tbody>
+          <tr><td>1</td><td class="ft">widened.json &rarr; BoundaryProofRole</td><td class="mech">--policy-input-list</td><td>A proposed identity policy, string-encoded, never attached.</td></tr>
+          <tr><td>2</td><td class="ft">BoundaryProofRole &rarr; Policy simulator</td><td class="mech">--policy-source-arn</td><td>The simulator evaluates in the role's context, including its boundary.</td></tr>
+          <tr><td>3</td><td class="ft">Policy simulator &rarr; Before: no boundary</td><td class="mech">run 1</td><td>No boundary: the identity policy decides alone, and <code>CreatePolicyVersion</code> is <code>allowed</code>.</td></tr>
+          <tr><td>4</td><td class="ft">BoundaryProofCeiling &rarr; BoundaryProofRole</td><td class="mech">put-role-permissions-boundary</td><td>Sets the ceiling; it grants nothing by itself.</td></tr>
+          <tr><td>5</td><td class="ft">Policy simulator &rarr; After: ceiling attached</td><td class="mech">run 2</td><td>Same input. <code>GetRole</code> allowed; 5 mutations <code>explicitDeny</code>; <code>ListUsers</code> and <code>CreatePolicyVersion</code> <code>implicitDeny</code>.</td></tr>
+          <tr><td>6</td><td class="ft">After: ceiling attached &rarr; Scored</td><td class="mech">compare</td><td>All eight decisions matched what was written down before the build.</td></tr>
+          <tr><td>7</td><td class="ft">predictions &rarr; Scored</td><td class="mech">git history</td><td>The predictions predate the role and policy in the repo's history.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="panel">
+          <h4>Legend</h4>
+          <div class="key">
+            <div><i style="background:var(--c-neu)"></i><span><b>Inputs &amp; the unbounded result</b>predictions, the before run</span></div>
+            <div><i style="background:var(--c-ctl)"></i><span><b>The proposal</b>widened.json</span></div>
+            <div><i style="background:var(--c-aws)"></i><span><b>IAM resources</b>the role and the ceiling</span></div>
+            <div><i style="background:var(--c-obs)"></i><span><b>Evaluation</b>simulator, after run, score</span></div>
+            <div><u style="border-color:var(--c-aws)"></u><span><b>Configuration</b>boundary and policy source</span></div>
+            <div><u style="border-color:var(--c-obs)"></u><span><b>Bounded result</b>and its scoring</span></div>
+            <div><u style="border-color:var(--c-neu); border-top-style:dashed"></u><span><b>Committed first</b>predictions in git</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h4>What existed, and when</h4>
+          <p class="surface"><b>During &mdash;</b> one role nothing could assume, and one customer-managed policy used only as its boundary.<br>
+          <b>Never &mdash;</b> the widened policy attached to anything; it was simulator input only.<br>
+          <b>Now &mdash;</b> nothing. Both were deleted and confirmed with <code>NoSuchEntity</code>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What I verified, and how</h2>
+      <p class="h2note">Evidence, separated from design intent</p>
+      <p>Building something and being able to prove it works are different claims, so I've kept them separate below. <strong>Measured</strong> means I created the condition myself and recorded what happened. <strong>Observed</strong> means I looked at the simulator output and saw the state it was already in. <strong>By design</strong> means the configuration guarantees it, but I didn't run a test against it &mdash; better to say that plainly than dress it up as a result.</p>
+    </div>
+
+    <div class="ledger">
+
+      <div class="v-row measured">
+        <div class="v-tag">Measured</div>
+        <div>
+          <h3><code>CreatePolicyVersion</code> flipped from allowed to denied by the boundary</h3>
+          <p>Against <code>BoundaryProofCeiling</code> as the resource, the unbounded run returned <code>allowed</code>. After <code>put-role-permissions-boundary</code>, the identical run returned <code>implicitDeny</code> with <code>AllowedByPermissionsBoundary: false</code>. Nothing else changed between the runs.</p>
+          <p class="v-method"><b>Method</b> <code>simulate-principal-policy</code> before and after; full JSON output in <code>results/</code>.</p>
+        </div>
+      </div>
+      <div class="v-row measured">
+        <div class="v-tag">Measured</div>
+        <div>
+          <h3>The ceiling composes with Deny and grants nothing on its own</h3>
+          <p>With the boundary attached, <code>iam:GetRole</code> (in both) stayed allowed; the five role mutations, including <code>DeleteRolePermissionsBoundary</code>, were <code>explicitDeny</code> with the boundary flag <code>true</code>; and <code>iam:ListUsers</code>, inside the ceiling but granted by nothing, was <code>implicitDeny</code> with the flag <code>true</code>.</p>
+          <p class="v-method"><b>Method</b> Same bounded simulation, reading <code>EvalDecision</code> and <code>PermissionsBoundaryDecisionDetail</code> per action.</p>
+        </div>
+      </div>
+      <div class="v-row measured">
+        <div class="v-tag">Measured</div>
+        <div>
+          <h3>Eight predictions, eight matches</h3>
+          <p>All eight decisions went into <code>predictions.csv</code> and were committed before the role or policy existed, then scored against the simulator: 8/8.</p>
+          <p class="v-method"><b>Method</b> Compared the committed predictions with the simulator output.</p>
+        </div>
+      </div>
+      <div class="v-row observed">
+        <div class="v-tag">Observed</div>
+        <div>
+          <h3>Teardown left nothing behind</h3>
+          <p>The boundary came off first &mdash; IAM won't delete a policy still in use as one &mdash; then the policy and role were deleted, and <code>get-role</code> and <code>get-policy</code> both returned <code>NoSuchEntity</code>. That output lives in a screenshot, not the repo.</p>
+          <p class="v-method"><b>Method</b> Ran the two reads after deletion (screenshot below).</p>
+        </div>
+      </div>
+      <div class="v-row design">
+        <div class="v-tag">By design</div>
+        <div>
+          <h3>The role couldn't have been used during the test</h3>
+          <p>Its trust policy names EC2 with no instance profile, and it had no attached or inline policies. I didn't try to assume it.</p>
+          <p class="v-method"><b>Method</b> Reviewed <code>trust.json</code> and the role's attachments.</p>
+        </div>
+      </div>
+
+    </div>
+    <p class="legend">Five claims. three measured, one observed, one stated as a design property rather than dressed up as a result.</p>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Proof</h2>
+      <p class="h2note">From the simulator output and the account</p>
+    </div>
+    <div class="shots">
+      <figure>
+        <img loading="lazy" alt="02-baseline.json showing EvalDecision allowed for iam:CreatePolicyVersion" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/aws/iam-boundary-proof/Screenshots/Screenshot%20from%202026-09-14%2012-15-41.png">
+        <figcaption>Before the boundary: <code>CreatePolicyVersion</code> allowed.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="readout.html showing 8/8 and the decision-rule table" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/aws/iam-boundary-proof/Screenshots/Screenshot%20from%202026-09-14%2013-48-33.png">
+        <figcaption>After: every case scored, limits stated.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="get-role and get-policy both failing with NoSuchEntity" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/aws/iam-boundary-proof/Screenshots/Screenshot%20from%202026-09-14%2014-05-20.png">
+        <figcaption>Teardown: both reads return <code>NoSuchEntity</code>.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="docs folder with build-plan, decisions, requirements, source-map, TASKS and topology" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/aws/iam-boundary-proof/Screenshots/Screenshot%20from%202026-09-12%2021-04-08.png">
+        <figcaption>Design files written before the build.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What actually broke</h2>
+      <p class="h2note">Three failures worth keeping</p>
+      <div class="broke">
+        <article>
+          <h3><code>--policy-input-list</code> wants strings, not objects</h3>
+          <p>Passing the widened policy as an ordinary JSON document failed. The CLI expects a list of policy <em>strings</em>, so <code>widened.json</code> became a one-element array holding the escaped document. That took longer than any other step.</p>
+        </article>
+        <article>
+          <h3>The seal tag landed one commit early</h3>
+          <p>At close-out, <code>git tag -a v1.0.0</code> failed with <code>tag 'v1.0.0' already exists</code>: it had been created at the adjudication commit, before teardown. That contradicts the closing line of <code>results/check-manifest.md</code>. I left the tag where it landed and documented the discrepancy rather than moving it.</p>
+        </article>
+        <article>
+          <h3>The teardown proof is a screenshot</h3>
+          <p>Every other check pasted its full output into <code>results/</code>. The two <code>NoSuchEntity</code> reads were only captured on screen, which makes them the weakest evidence in the project.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Source</h2>
+      <p class="h2note">Everything on this page came from here</p>
+      <div class="src">
+        <p>The <code>boundary.json</code> ceiling, the <code>trust.json</code> trust policy, the string-encoded <code>widened.json</code>, full simulator output under <code>results/</code>, and the requirements, decision records and topology under <code>docs/</code> live here: <a href="https://github.com/kingswanzy2020/iam-boundary-proof">kingswanzy2020/iam-boundary-proof</a>. The published copy redacts the account ID to <code>111122223333</code>.</p>
+        <pre>git clone https://github.com/kingswanzy2020/iam-boundary-proof.git</pre>
+      </div>
+      <p class="stack"><b>Stack</b><br>AWS IAM &middot; permissions boundaries &middot; IAM policy evaluation logic &middot; simulate-principal-policy &middot; explicit vs implicit vs boundary deny &middot; privilege-escalation analysis &middot; JSON policy authoring &middot; AWS CLI &middot; dependency-ordered teardown &middot; Architecture Decision Records</p>
+    </div>
+  </section>
+
+  <nav class="next" aria-label="More case studies">
+    <a href="../serverless-lead-capture/"><small>&larr; Previous</small>Serverless lead capture at a real domain</a>
+    <a class="r" href="../three-tier-serverless/"><small>Next &rarr;</small>A three-tier web architecture, serverless</a>
+  </nav>
+
+  <footer class="col">
+    Ahmed Tetteh &middot; <a href="mailto:kingsleyswanzy@gmail.com">kingsleyswanzy@gmail.com</a> &middot; <a href="https://github.com/kingswanzy2020">github.com/kingswanzy2020</a> &middot; <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a><br>
+    Static HTML and CSS. No JavaScript, no framework, no build step for the page itself.
+  </footer>
+
+</div>
+</body>
+</html>

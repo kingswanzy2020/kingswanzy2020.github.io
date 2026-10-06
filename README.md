@@ -1,19 +1,29 @@
-# kahmedt case studies
+# kingswanzy2020.github.io
 
-Static HTML case studies, one per project. No build step, no framework.
+Ahmed Tetteh's portfolio: a landing page and 29 case studies, one per project.
+Static HTML and CSS — no JavaScript, no framework, nothing to build at serve time.
 
-- `index.html` — landing page: name, positioning, certifications, and cards
-  into each case study below.
-- `eks/index.html` — production application on Amazon EKS.
-- `terraform-gitops/index.html` — Terraform GitOps pipeline on AWS.
-- `argocd-pipeline/index.html` — GitOps deployment pipeline with ArgoCD.
-- `fastapi-react/index.html` — a FastAPI + React template taken from compose
-  to Kubernetes; its screenshots are in `fastapi-react/img/`.
-- `delivery-scoreboard/index.html` — DORA delivery scoreboard with DuckDB.
+- `index.html` — landing page: intro, experience, selected work, the full
+  case-study archive, certifications (with Credly verification links) and contact.
+- `assets/site.css` — the one stylesheet every page uses (dark navy / teal).
+  Diagram colours are the `--c-*` and `--dg-*` tokens at the top.
+- `assets/img/ahmed.jpg` — profile photo used by the avatar on every page.
+  Until it exists, the avatar shows the initials "AT".
+- `assets/thumbs/` — diagram thumbnails for the "Selected work" list.
+- `<slug>/index.html` — one case study per directory. Each has the same
+  sections: spec sheet, numbered architecture diagram, wiring table and legend,
+  a measured / observed / by-design ledger, proof screenshots, what broke, and
+  the source repo. Images extracted from my NextWork write-ups live in
+  `<slug>/img/`; everything else is loaded from the
+  [Projects](https://github.com/kingswanzy2020/Projects) repo.
+- `tools/casegen/` — the generator for the case studies added in October 2026
+  and for the landing page. Content is data in `content/*.py`; run
+  `python3 tools/casegen/build_site.py` to rebuild. It also restyles the five
+  original hand-built pages (`eks`, `terraform-gitops`, `argocd-pipeline`,
+  `fastapi-react`, `delivery-scoreboard`) and adds previous/next links to all.
+- `add-real-icons.sh` — swaps a page's placeholder diagram glyphs for real
+  vendor logos once they're in `assets/icons/` (see the script's header).
 - `.github/workflows/deploy.yml` — deploys on every push to `main` via
-  GitHub Pages (Actions source, not the branch source).
-- `add-real-icons.sh` — swaps every architecture diagram's placeholder icons
-  for real vendor logos once you've dropped them into `assets/icons/`; run it
-  once per page (see the script's header for usage and the full file list).
+  GitHub Pages (Actions source).
 
 Live at: https://kingswanzy2020.github.io/

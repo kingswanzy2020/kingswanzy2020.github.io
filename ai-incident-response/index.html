@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Case study: Kubernetes error logs collected by Fluent Bit, diagnosed by a local LLM through Ollama, deduplicated and cached in Redis, and turned into GitHub issues with a proposed kubectl fix.">
+<title>AI Log Analysis &amp; Incident Response</title>
+<meta name="theme-color" content="#0b1220">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@500;600&display=swap">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body class="case">
+<div class="bar">
+  <div class="wrap">
+    <a class="brand" href="../"><span class="avatar sm" aria-hidden="true">AT</span><b>Ahmed Tetteh</b><small>DevOps &middot; Platform &middot; SRE</small></a>
+    <nav>
+      <a class="back" href="../#work">&larr; All case studies</a>
+      <a href="https://github.com/kingswanzy2020">GitHub</a>
+      <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a>
+      <a href="mailto:kingsleyswanzy@gmail.com">Email</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div class="col">
+      <p class="eyebrow">Case study &mdash; AI &times; SRE</p>
+      <h1>AI log analysis that opens one incident per error, not one per log line</h1>
+      <p class="standfirst">I built a pipeline where Fluent Bit ships only ERROR and CRITICAL logs out of a Kubernetes cluster, a local LLM diagnoses them, and each new error signature becomes a single GitHub issue with a root cause and a proposed <code>kubectl</code> fix &mdash; cached, deduplicated and rate-limited so an error storm can't flood the model or the tracker.</p>
+
+      <div class="status">
+        <span class="chip">Local cluster</span>
+        <p>This ran on my own machine: a local Kubernetes cluster for the crashing app and Fluent Bit, with the FastAPI service and Ollama on the host. No cloud API was involved and nothing was public. The repo rebuilds it; everything below describes those runs.</p>
+      </div>
+    </div>
+
+    <dl class="spec">
+      <div><dt>Collection</dt><dd>Fluent Bit DaemonSet, Helm</dd></div>
+      <div><dt>Filter</dt><dd>ERROR / CRITICAL at the edge</dd></div>
+      <div><dt>Middleware</dt><dd>FastAPI on the host</dd></div>
+      <div><dt>Model</dt><dd>Ollama, qwen3:1.7b, local</dd></div>
+      <div><dt>Cache &amp;amp; dedupe</dt><dd>Redis, keyed by error signature</dd></div>
+      <div><dt>Output</dt><dd>GitHub Issues (+ optional Slack)</dd></div>
+    </dl>
+  </header>
+
+  <section>
+    <div class="col">
+      <h2>What it does</h2>
+      <p class="h2note">Summary</p>
+      <p>A deliberately crash-prone app in the cluster writes structured log lines with a <code>level</code>, a message and a timestamp. Fluent Bit runs as a DaemonSet, keeps only lines whose level matches ERROR or CRITICAL, and POSTs them to a FastAPI service on the host. The service checks Redis for a diagnosis of the same error signature; on a miss, and only within the rate limit, it asks <code>qwen3:1.7b</code> through Ollama for a structured answer &mdash; <code>error_category</code>, <code>root_cause</code>, <code>severity</code>, <code>kubectl_fix</code> &mdash; caches it, and opens a GitHub issue for signatures it hasn't seen. A Slack alert fires too if a webhook is configured.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>How it is wired</h2>
+      <p class="h2note">The mechanism</p>
+      <p><strong>Why filter in Fluent Bit and not in the service?</strong> Most log lines aren't errors. Dropping them at the DaemonSet means they never cross the network and the model never sees noise. The service filters again, case-insensitively, as a second line.</p>
+      <p><strong>Why cache by error signature?</strong> During an incident the same error repeats hundreds of times. Without a cache, every repeat is another inference call that ties up the model when it's needed most. With the signature as the Redis key, a repeat is answered from cache in milliseconds.</p>
+      <p><strong>Why deduplicate separately from caching?</strong> A cached diagnosis stops repeat model calls; deduplication stops repeat tickets. An error signature that already has an issue is logged and skipped, so one recurring failure is one issue, not a page of them.</p>
+      <p><strong>Why a rate limit on the model?</strong> Each inference takes seconds. A burst of <em>unique</em> errors would queue unbounded calls and exhaust the machine. A token bucket caps how fast the model is asked, whatever arrives.</p>
+    </div>
+
+    <figure class="fig">
+      <div class="fig-scroll">
+<svg viewBox="0 0 1244 560" role="img" aria-label="A crash-prone app in a Kubernetes cluster writes logs; a Fluent Bit DaemonSet filters ERROR and CRITICAL lines and sends them to a FastAPI service on the host. The service checks Redis for a cached diagnosis by error signature, calls the local Ollama model on a miss within a rate limit, opens a GitHub issue for new signatures, and optionally posts to Slack."><defs><marker id="mreq" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-app)"/></marker><marker id="mdata" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--dg-line)"/></marker><marker id="mctl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-ctl)"/></marker><marker id="mobs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-obs)"/></marker><marker id="maws" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-aws)"/></marker><marker id="mneu" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-neu)"/></marker></defs><rect x="16" y="60" width="380" height="470" rx="8" fill="none" stroke="var(--c-ctl)" stroke-width="1.2" stroke-dasharray="6 5" opacity=".8"/><text x="34" y="53" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="10.5" letter-spacing="1.3" fill="var(--c-ctl)">LOCAL KUBERNETES CLUSTER</text><rect x="430" y="60" width="560" height="470" rx="8" fill="none" stroke="var(--c-neu)" stroke-width="1.2" stroke-dasharray="6 5" opacity=".8"/><text x="448" y="53" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="10.5" letter-spacing="1.3" fill="var(--c-neu)">MY MACHINE — HOST</text><g><rect x="40" y="110" width="200" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-app)" stroke-width="1.3"/><path d="M45,110.65 h190 a4.4,4.4 0 0 1 4.4,4.4 v0 h-198.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-app)"/><rect x="53" y="123" width="30" height="30" rx="6" fill="var(--c-app-s)"/><rect x="60" y="130" width="16" height="16" rx="3" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><rect x="64" y="134" width="8" height="8" rx="1.5" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:workload--><!--<image href="../assets/icons/workload.svg" x="55" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="91" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Crashy app</text><text x="53" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">level · message · time</text><rect x="53" y="177" width="75" height="15" rx="3" fill="var(--c-app-s)"/><text x="59" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-app)">real errors</text></g><g><rect x="40" y="300" width="200" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-obs)" stroke-width="1.3"/><path d="M45,300.65 h190 a4.4,4.4 0 0 1 4.4,4.4 v0 h-198.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-obs)"/><rect x="53" y="313" width="30" height="30" rx="6" fill="var(--c-obs-s)"/><path d="M60,321 h16 l-6,7.5 v7 l-4,-2 v-5 z" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:fluent-bit--><!--<image href="../assets/icons/fluent-bit.svg" x="55" y="315" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="91" y="333" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Fluent Bit</text><text x="53" y="359" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">DaemonSet · grep filter</text><rect x="53" y="367" width="104" height="15" rx="3" fill="var(--c-obs-s)"/><text x="59" y="377.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-obs)">ERROR / CRITICAL</text></g><g><rect x="470" y="300" width="200" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-ctl)" stroke-width="1.3"/><path d="M475,300.65 h190 a4.4,4.4 0 0 1 4.4,4.4 v0 h-198.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-ctl)"/><rect x="483" y="313" width="30" height="30" rx="6" fill="var(--c-ctl-s)"/><polyline points="495,322 490,328 495,334" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="501,322 506,328 501,334" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="499" y1="321" x2="497" y2="335" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:fastapi--><!--<image href="../assets/icons/fastapi.svg" x="485" y="315" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="521" y="333" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">FastAPI service</text><text x="483" y="359" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">filter · cache · ticket</text><rect x="483" y="367" width="81" height="15" rx="3" fill="var(--c-ctl-s)"/><text x="489" y="377.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-ctl)">token bucket</text></g><g><rect x="470" y="110" width="200" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-obs)" stroke-width="1.3"/><path d="M475,110.65 h190 a4.4,4.4 0 0 1 4.4,4.4 v0 h-198.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-obs)"/><rect x="483" y="123" width="30" height="30" rx="6" fill="var(--c-obs-s)"/><rect x="490" y="130" width="16" height="5" rx="1.5" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><rect x="490" y="135.5" width="16" height="5" rx="1.5" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><rect x="490" y="141" width="16" height="5" rx="1.5" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:redis--><!--<image href="../assets/icons/redis.svg" x="485" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="521" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Redis</text><text x="483" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">signature → diagnosis</text><rect x="483" y="177" width="92" height="15" rx="3" fill="var(--c-obs-s)"/><text x="489" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-obs)">cache + dedupe</text></g><g><rect x="750" y="110" width="210" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M755,110.65 h200 a4.4,4.4 0 0 1 4.4,4.4 v0 h-208.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="763" y="123" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><rect x="771" y="131" width="14" height="14" rx="2.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="778" cy="138" r="2.6" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="775" y1="128.5" x2="775" y2="131" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="781" y1="128.5" x2="781" y2="131" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="775" y1="145" x2="775" y2="147.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="781" y1="145" x2="781" y2="147.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:ollama--><!--<image href="../assets/icons/ollama.svg" x="765" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="801" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Ollama</text><text x="763" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">qwen3:1.7b, local</text><rect x="763" y="177" width="98" height="15" rx="3" fill="var(--c-neu-s)"/><text x="769" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">structured JSON</text></g><g><rect x="1030" y="300" width="180" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-ctl)" stroke-width="1.3"/><path d="M1035,300.65 h170 a4.4,4.4 0 0 1 4.4,4.4 v0 h-178.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-ctl)"/><rect x="1043" y="313" width="30" height="30" rx="6" fill="var(--c-ctl-s)"/><circle cx="1053" cy="321.5" r="2.3" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="1053" cy="334.5" r="2.3" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="1063" cy="325" r="2.3" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="1053" y1="323.8" x2="1053" y2="332.2" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M1063,327.3 c0,4 -10,3 -10,5" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:github--><!--<image href="../assets/icons/github.svg" x="1045" y="315" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="1081" y="333" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">GitHub Issue</text><text x="1043" y="359" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">root cause + kubectl fix</text><rect x="1043" y="367" width="121" height="15" rx="3" fill="var(--c-ctl-s)"/><text x="1049" y="377.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-ctl)">new signatures only</text></g><g><rect x="750" y="430" width="210" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M755,430.65 h200 a4.4,4.4 0 0 1 4.4,4.4 v0 h-208.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="763" y="443" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><path d="M770,452 h16 v10 h-9 l-4,3.5 v-3.5 h-3 z" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="774" y1="456" x2="782" y2="456" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="774" y1="459" x2="779" y2="459" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:slack--><!--<image href="../assets/icons/slack.svg" x="765" y="445" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="801" y="463" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Slack</text><text x="763" y="489" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">if webhook is set</text><rect x="763" y="497" width="58" height="15" rx="3" fill="var(--c-neu-s)"/><text x="769" y="507.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">optional</text></g><line x1="140" y1="198" x2="140" y2="296" stroke="var(--c-obs)" stroke-width="1.4" marker-end="url(#mobs)" fill="none"/><line x1="240" y1="344" x2="466" y2="344" stroke="var(--c-obs)" stroke-width="1.4" marker-end="url(#mobs)" fill="none"/><line x1="570" y1="300" x2="570" y2="202" stroke="var(--dg-line)" stroke-width="1.6" marker-end="url(#mdata)" fill="none"/><polyline points="670,324 855,324 855,202" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><line x1="670" y1="364" x2="1026" y2="364" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><polyline points="570,388 570,474 746,474" stroke="var(--c-neu)" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#mneu)" fill="none"/><circle cx="140" cy="247" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="140" y="250.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">1</text><circle cx="353" cy="344" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="353" y="347.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">2</text><circle cx="570" cy="251" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="570" y="254.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">3</text><circle cx="762.5" cy="324" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="762.5" y="327.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">4</text><circle cx="848" cy="364" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="848" y="367.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">5</text><circle cx="658" cy="474" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="658" y="477.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">6</text></svg>
+      </div>
+      <figcaption>The pipeline as it ran. Arrow 3 is the reason arrow 4 isn't called hundreds of times during an incident, and the dedupe on arrow 5 is the reason the issue tracker doesn't fill up either.</figcaption>
+    </figure>
+
+    <div class="wiring">
+      <div class="panel">
+        <h4>How the components communicate</h4>
+        <table class="wire">
+          <thead><tr><th>No</th><th>From &rarr; to</th><th>Mechanism</th><th>What happens</th></tr></thead>
+          <tbody>
+          <tr><td>1</td><td class="ft">Crashy app &rarr; Fluent Bit</td><td class="mech">container logs</td><td>Structured lines; the <code>level</code> field is what the grep filter matches.</td></tr>
+          <tr><td>2</td><td class="ft">Fluent Bit &rarr; FastAPI service</td><td class="mech">HTTP POST</td><td>To <code>host.docker.internal:8000</code>, the address that actually reached the host.</td></tr>
+          <tr><td>3</td><td class="ft">FastAPI service &rarr; Redis</td><td class="mech">get / set</td><td>Cache check by signature; a hit skips the model.</td></tr>
+          <tr><td>4</td><td class="ft">FastAPI service &rarr; Ollama</td><td class="mech">rate-limited call</td><td>On a miss: category, root cause, severity and a proposed <code>kubectl</code> fix.</td></tr>
+          <tr><td>5</td><td class="ft">FastAPI service &rarr; GitHub Issue</td><td class="mech">REST API</td><td>Opens an issue for a signature with none; a repeat is logged and skipped.</td></tr>
+          <tr><td>6</td><td class="ft">FastAPI service &rarr; Slack</td><td class="mech">webhook</td><td>Only when the webhook variable is present; otherwise skipped quietly.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="panel">
+          <h4>Legend</h4>
+          <div class="key">
+            <div><i style="background:var(--c-app)"></i><span><b>Error source</b>the crash-prone app</span></div>
+            <div><i style="background:var(--c-obs)"></i><span><b>Collection &amp; memory</b>Fluent Bit, Redis</span></div>
+            <div><i style="background:var(--c-ctl)"></i><span><b>Logic &amp; output</b>FastAPI, GitHub</span></div>
+            <div><i style="background:var(--c-neu)"></i><span><b>Model &amp; optional alerting</b>Ollama, Slack</span></div>
+            <div><u style="border-color:var(--c-obs)"></u><span><b>Log path</b>cluster to host</span></div>
+            <div><u style="border-color:var(--c-ctl)"></u><span><b>Diagnosis &amp; ticket</b>model and GitHub</span></div>
+            <div><u style="border-color:var(--dg-line)"></u><span><b>Cache</b>signature lookups</span></div>
+            <div><u style="border-color:var(--c-neu); border-top-style:dashed"></u><span><b>Optional</b>Slack</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h4>What was reachable</h4>
+          <p class="surface"><b>Public &mdash;</b> nothing; the only outbound call was GitHub's API to open issues.<br>
+          <b>Host &mdash;</b> FastAPI and Ollama; the model ran locally, so no log left the machine for inference.<br>
+          <b>Token &mdash;</b> a GitHub token with read/write on the one issues repository.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What I verified, and how</h2>
+      <p class="h2note">Evidence, separated from design intent</p>
+      <p>Building something and being able to prove it works are different claims, so I've kept them separate below. <strong>Measured</strong> means I created the condition myself and recorded what happened. <strong>Observed</strong> means I looked at the running pipeline and saw the state it was already in. <strong>By design</strong> means the configuration guarantees it, but I didn't run a test against it &mdash; better to say that plainly than dress it up as a result.</p>
+    </div>
+
+    <div class="ledger">
+
+      <div class="v-row measured">
+        <div class="v-tag">Measured</div>
+        <div>
+          <h3>One real error became one issue, and the repeats didn't</h3>
+          <p>With the crashing app emitting errors, the service received them from Fluent Bit, created a GitHub issue with the signature, root cause and proposed fix, and cached the diagnosis in Redis. Further errors with the same signature were recognised and skipped issue creation.</p>
+          <p class="v-method"><b>Method</b> Ran the end-to-end integration test and watched the service log, Redis and the issues repository.</p>
+        </div>
+      </div>
+      <div class="v-row observed">
+        <div class="v-tag">Observed</div>
+        <div>
+          <h3>A pod could reach the service on the host</h3>
+          <p>A throwaway curl pod in the cluster got a JSON response from <code>host.docker.internal:8000/health</code>, which is why that's the address Fluent Bit uses.</p>
+          <p class="v-method"><b>Method</b> <code>kubectl run</code> a curl pod against the health endpoint.</p>
+        </div>
+      </div>
+      <div class="v-row design">
+        <div class="v-tag">By design</div>
+        <div>
+          <h3>A burst of unique errors can't exhaust the machine</h3>
+          <p>A token bucket caps how often the model is called. I didn't generate a deliberate storm of unique errors to watch requests queue.</p>
+          <p class="v-method"><b>Method</b> Reviewed the rate limiter. Not load-tested.</p>
+        </div>
+      </div>
+      <div class="v-row design">
+        <div class="v-tag">By design</div>
+        <div>
+          <h3>The model's answer is a suggestion, not a remediation</h3>
+          <p>The <code>kubectl_fix</code> lands in an issue for a person to read. Nothing in the pipeline runs it.</p>
+          <p class="v-method"><b>Method</b> By construction: the service only writes issues and Slack messages.</p>
+        </div>
+      </div>
+
+    </div>
+    <p class="legend">Four claims. one measured, one observed, two stated as design properties rather than dressed up as results.</p>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Proof</h2>
+      <p class="h2note">From the end-to-end run</p>
+    </div>
+    <div class="shots">
+      <figure>
+        <img loading="lazy" alt="End to end: a Kubernetes error flowing through the service to a diagnosis and a GitHub issue" src="https://learn.nextwork.org/thoughtful_white_zany_vampire/uploads/4e7446a3-e3d2-4d8e-b420-e5e19a81011c_svbvwixt">
+        <figcaption>End to end: error &rarr; diagnosis &rarr; issue.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="An automatically created GitHub issue with root cause, severity and a proposed kubectl fix" src="https://learn.nextwork.org/thoughtful_white_zany_vampire/uploads/4e7446a3-e3d2-4d8e-b420-e5e19a81011c_mygwznjn">
+        <figcaption>The issue the pipeline opened, with its proposed fix.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What actually broke</h2>
+      <p class="h2note">Two failures worth keeping</p>
+      <div class="broke">
+        <article>
+          <h3>Fluent Bit could see the logs but not the service</h3>
+          <p>The service listened on my host; Fluent Bit ran in a pod. Finding an address a pod could actually reach took trial and error. <code>host.docker.internal:8000</code> worked, because the server was bound to all interfaces rather than localhost &mdash; and I proved it with a curl pod before trusting Fluent Bit to use it.</p>
+        </article>
+        <article>
+          <h3>The first diagnosis was slow for a reason unrelated to the error</h3>
+          <p>Ollama loads the model into memory on first use, which takes 10&ndash;30 seconds. Without a warm-up at startup, the first real error of a session waited on that load. The service now warms the model before it needs it.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Source</h2>
+      <p class="h2note">Everything on this page came from here</p>
+      <div class="src">
+        <p>The FastAPI service, its token-bucket rate limiter and Redis dedupe, the crash-looping test workload and the Fluent Bit values live here: <a href="https://github.com/kingswanzy2020/autonomous-sre">kingswanzy2020/autonomous-sre</a>.</p>
+        <pre>git clone https://github.com/kingswanzy2020/autonomous-sre.git</pre>
+      </div>
+      <p class="stack"><b>Stack</b><br>Kubernetes &middot; Fluent Bit (DaemonSet, Helm) &middot; FastAPI &middot; Ollama (qwen3:1.7b) &middot; Redis caching &middot; signature dedupe &middot; token-bucket rate limiting &middot; GitHub REST API &middot; Slack webhooks &middot; incident response</p>
+    </div>
+  </section>
+
+  <nav class="next" aria-label="More case studies">
+    <a href="../s3-static-website/"><small>&larr; Previous</small>A static website on S3, access model and all</a>
+    <a class="r" href="../rag-api/"><small>Next &rarr;</small>A RAG API from laptop to Kubernetes</a>
+  </nav>
+
+  <footer class="col">
+    Ahmed Tetteh &middot; <a href="mailto:kingsleyswanzy@gmail.com">kingsleyswanzy@gmail.com</a> &middot; <a href="https://github.com/kingswanzy2020">github.com/kingswanzy2020</a> &middot; <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a><br>
+    Static HTML and CSS. No JavaScript, no framework, no build step for the page itself.
+  </footer>
+
+</div>
+</body>
+</html>

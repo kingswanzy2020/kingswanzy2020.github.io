@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Case study: a Flask app shipped to Kubernetes by a four-stage Jenkins pipeline, packaged as a Helm chart, and watched by Prometheus and Grafana. What was built, and what was actually verified.">
+<title>Kubernetes CI/CD with Helm &amp; Monitoring</title>
+<meta name="theme-color" content="#0b1220">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@500;600&display=swap">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body class="case">
+<div class="bar">
+  <div class="wrap">
+    <a class="brand" href="../"><span class="avatar sm" aria-hidden="true">AT</span><b>Ahmed Tetteh</b><small>DevOps &middot; Platform &middot; SRE</small></a>
+    <nav>
+      <a class="back" href="../#work">&larr; All case studies</a>
+      <a href="https://github.com/kingswanzy2020">GitHub</a>
+      <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a>
+      <a href="mailto:kingsleyswanzy@gmail.com">Email</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div class="col">
+      <p class="eyebrow">Case study &mdash; Kubernetes / Observability</p>
+      <h1>Kubernetes CI/CD with Helm and full-stack monitoring</h1>
+      <p class="standfirst">I shipped a small Flask app, FitTrack, to Kubernetes through a four-stage Jenkins pipeline, packaged it as a reusable Helm chart, and put Prometheus and Grafana around it with an alert that only fires when 5xx errors stay above 5% for two full minutes.</p>
+
+      <div class="status">
+        <span class="chip">Local cluster</span>
+        <p>This ran on a Kubernetes cluster inside Rancher Desktop on my laptop, not in a cloud account, and nothing was ever exposed publicly. The chart, the <code>Jenkinsfile</code> and <code>monitoring-values.yaml</code> in the repo reproduce it on any cluster with Helm installed. Everything below describes that local run.</p>
+      </div>
+    </div>
+
+    <dl class="spec">
+      <div><dt>Platform</dt><dd>Kubernetes on Rancher Desktop</dd></div>
+      <div><dt>Packaging</dt><dd>Helm chart + values overrides</dd></div>
+      <div><dt>CI/CD</dt><dd>Jenkins, 4 stages</dd></div>
+      <div><dt>Registry</dt><dd>Docker Hub, build-number tags</dd></div>
+      <div><dt>Monitoring</dt><dd>kube-prometheus-stack</dd></div>
+      <div><dt>Alert</dt><dd>5xx &gt; 5% for 2 minutes</dd></div>
+    </dl>
+  </header>
+
+  <section>
+    <div class="col">
+      <h2>What it does</h2>
+      <p class="h2note">Summary</p>
+      <p>FitTrack is a multi-page Flask app that exposes a <code>/metrics</code> endpoint with request counts per route. A Jenkins pipeline checked out the code, built the image, pushed it to Docker Hub under both the build number and <code>latest</code>, then ran <code>kubectl set image</code> and waited on <code>rollout status</code>, so a rollout that never converged failed the build. kube-prometheus-stack, installed by Helm with my own values, found the app through a <code>ServiceMonitor</code>, drew it in Grafana, and evaluated a <code>PrometheusRule</code> on the 5xx rate. The app itself was then packaged as its own Helm chart with replicas, image tag and resources templated.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>How it is wired</h2>
+      <p class="h2note">The mechanism</p>
+      <p><strong>Why a Helm chart instead of the raw manifests?</strong> Copy-pasted YAML has no version and no undo. A chart is a set of Go templates; the values fill in the placeholders (<code>{{ .Values }}</code>), and <code>--set</code> or a values file overrides them per environment. Each install is a numbered release, so going back is <code>helm rollback</code>, not working out which YAML was applied last.</p>
+      <p><strong>Why does the pipeline wait on <code>rollout status</code>?</strong> <code>kubectl set image</code> returns as soon as the API server accepts the change, which says nothing about whether new pods ever became ready. Waiting on <code>rollout status</code> makes the Deploy stage fail when the rollout doesn't converge, so a green build means the new version is actually running.</p>
+      <p><strong>Why does the <code>ServiceMonitor</code> need cross-namespace discovery?</strong> The Prometheus Operator only scrapes what a <code>ServiceMonitor</code> selects, and out of the box it only looks at monitors from its own release. I changed that in <code>monitoring-values.yaml</code> so Prometheus discovers monitors in other namespaces too. Without it FitTrack's monitor exists and nothing ever scrapes it.</p>
+      <p><strong>Why wait two minutes before the alert fires?</strong> A single 5xx is a blip, not an incident. The rule fires only when more than 5% of requests return 5xx for two continuous minutes, so a one-off failure never pages anyone. The liveness and readiness probes handle the short-term damage in the meantime: liveness restarts a wedged container, readiness pulls an unready pod out of the Service without restarting it.</p>
+    </div>
+
+    <figure class="fig">
+      <div class="fig-scroll">
+<svg viewBox="0 0 1244 600" role="img" aria-label="Architecture of the FitTrack pipeline: an engineer pushes to GitHub, Jenkins builds the image, pushes it to Docker Hub and runs kubectl set image against the FitTrack Deployment. Helm installs the chart and the monitoring stack. Inside the cluster a ServiceMonitor selects FitTrack, Prometheus scrapes its metrics endpoint, evaluates a PrometheusRule and feeds Grafana."><defs><marker id="mreq" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-app)"/></marker><marker id="mdata" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--dg-line)"/></marker><marker id="mctl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-ctl)"/></marker><marker id="mobs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-obs)"/></marker><marker id="maws" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-aws)"/></marker><marker id="mneu" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-neu)"/></marker></defs><rect x="598" y="70" width="630" height="500" rx="8" fill="none" stroke="var(--c-ctl)" stroke-width="1.2" stroke-dasharray="6 5" opacity=".8"/><text x="616" y="63" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="10.5" letter-spacing="1.3" fill="var(--c-ctl)">KUBERNETES CLUSTER — RANCHER DESKTOP · KUBE-PROMETHEUS-STACK VIA HELM</text><g><rect x="16" y="120" width="136" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M21,120.65 h126 a4.4,4.4 0 0 1 4.4,4.4 v0 h-134.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="29" y="133" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><circle cx="44" cy="144" r="3.6" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M36.5,156 a7.5,6.5 0 0 1 15,0" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:engineer--><!--<image href="../assets/icons/engineer.svg" x="31" y="135" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="67" y="153" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Engineer</text><text x="29" y="179" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">git push</text><rect x="29" y="187" width="75" height="15" rx="3" fill="var(--c-neu-s)"/><text x="35" y="197.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">code change</text></g><g><rect x="192" y="120" width="150" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-ctl)" stroke-width="1.3"/><path d="M197,120.65 h140 a4.4,4.4 0 0 1 4.4,4.4 v0 h-148.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-ctl)"/><rect x="205" y="133" width="30" height="30" rx="6" fill="var(--c-ctl-s)"/><circle cx="215" cy="141.5" r="2.3" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="215" cy="154.5" r="2.3" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="225" cy="145" r="2.3" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="215" y1="143.8" x2="215" y2="152.2" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M225,147.3 c0,4 -10,3 -10,5" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:github--><!--<image href="../assets/icons/github.svg" x="207" y="135" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="243" y="153" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">GitHub</text><text x="205" y="179" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">app + Jenkinsfile</text><rect x="205" y="187" width="46" height="15" rx="3" fill="var(--c-ctl-s)"/><text x="211" y="197.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-ctl)">source</text></g><g><rect x="388" y="120" width="170" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-ctl)" stroke-width="1.3"/><path d="M393,120.65 h160 a4.4,4.4 0 0 1 4.4,4.4 v0 h-168.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-ctl)"/><rect x="401" y="133" width="30" height="30" rx="6" fill="var(--c-ctl-s)"/><circle cx="416" cy="148" r="4.5" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="416" y1="139" x2="416" y2="142" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="416" y1="154" x2="416" y2="157" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="407" y1="148" x2="410" y2="148" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="422" y1="148" x2="425" y2="148" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="409.6" y1="141.6" x2="411.8" y2="143.8" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="420.2" y1="152.2" x2="422.4" y2="154.4" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="422.4" y1="141.6" x2="420.2" y2="143.8" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="411.8" y1="152.2" x2="409.6" y2="154.4" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:jenkins--><!--<image href="../assets/icons/jenkins.svg" x="403" y="135" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="439" y="153" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Jenkins</text><text x="401" y="179" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">checkout → build → push</text><rect x="401" y="187" width="58" height="15" rx="3" fill="var(--c-ctl-s)"/><text x="407" y="197.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-ctl)">4 stages</text></g><g><rect x="388" y="300" width="170" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M393,300.65 h160 a4.4,4.4 0 0 1 4.4,4.4 v0 h-168.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="401" y="313" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><path d="M416,319.5 l8,4 v9 l-8,4 l-8,-4 v-9 z" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="408,323.5 416,327.5 424,323.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="416" y1="327.5" x2="416" y2="336.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:docker-hub--><!--<image href="../assets/icons/docker-hub.svg" x="403" y="315" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="439" y="333" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Docker Hub</text><text x="401" y="359" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">:BUILD_NUMBER + :latest</text><rect x="401" y="367" width="58" height="15" rx="3" fill="var(--c-neu-s)"/><text x="407" y="377.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">registry</text></g><g><rect x="192" y="460" width="166" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-ctl)" stroke-width="1.3"/><path d="M197,460.65 h156 a4.4,4.4 0 0 1 4.4,4.4 v0 h-164.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-ctl)"/><rect x="205" y="473" width="30" height="30" rx="6" fill="var(--c-ctl-s)"/><path d="M214,480 h8 l5,5 v11 h-13 z" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="222,480 222,485 227,485" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="217" y1="489" x2="224" y2="489" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="217" y1="492.5" x2="224" y2="492.5" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:helm--><!--<image href="../assets/icons/helm.svg" x="207" y="475" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="243" y="493" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Helm</text><text x="205" y="519" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">chart + values files</text><rect x="205" y="527" width="58" height="15" rx="3" fill="var(--c-ctl-s)"/><text x="211" y="537.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-ctl)">releases</text></g><g><rect x="626" y="120" width="180" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-app)" stroke-width="1.3"/><path d="M631,120.65 h170 a4.4,4.4 0 0 1 4.4,4.4 v0 h-178.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-app)"/><rect x="639" y="133" width="30" height="30" rx="6" fill="var(--c-app-s)"/><rect x="646" y="140" width="16" height="7" rx="1.5" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><rect x="646" y="150" width="16" height="7" rx="1.5" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="649.5" cy="143.5" r="0.9" fill="var(--c-app)"/><circle cx="649.5" cy="153.5" r="0.9" fill="var(--c-app)"/><!--ICON:flask--><!--<image href="../assets/icons/flask.svg" x="641" y="135" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="677" y="153" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">FitTrack app</text><text x="639" y="179" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">Flask · /metrics</text><rect x="639" y="187" width="98" height="15" rx="3" fill="var(--c-app-s)"/><text x="645" y="197.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-app)">probes + limits</text></g><g><rect x="862" y="120" width="176" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-obs)" stroke-width="1.3"/><path d="M867,120.65 h166 a4.4,4.4 0 0 1 4.4,4.4 v0 h-174.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-obs)"/><rect x="875" y="133" width="30" height="30" rx="6" fill="var(--c-obs-s)"/><path d="M882,141 h16 l-6,7.5 v7 l-4,-2 v-5 z" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:kubernetes--><!--<image href="../assets/icons/kubernetes.svg" x="877" y="135" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="913" y="153" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">ServiceMonitor</text><text x="875" y="179" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">selects FitTrack's Service</text><rect x="875" y="187" width="98" height="15" rx="3" fill="var(--c-obs-s)"/><text x="881" y="197.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-obs)">cross-namespace</text></g><g><rect x="862" y="300" width="160" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-obs)" stroke-width="1.3"/><path d="M867,300.65 h150 a4.4,4.4 0 0 1 4.4,4.4 v0 h-158.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-obs)"/><rect x="875" y="313" width="30" height="30" rx="6" fill="var(--c-obs-s)"/><polyline points="882,333 887,326 891,330 898,322" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="881.5" y1="336" x2="898.5" y2="336" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:prometheus--><!--<image href="../assets/icons/prometheus.svg" x="877" y="315" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="913" y="333" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Prometheus</text><text x="875" y="359" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">scrapes /metrics</text><rect x="875" y="367" width="98" height="15" rx="3" fill="var(--c-obs-s)"/><text x="881" y="377.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-obs)">kube-prom-stack</text></g><g><rect x="1062" y="300" width="154" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-obs)" stroke-width="1.3"/><path d="M1067,300.65 h144 a4.4,4.4 0 0 1 4.4,4.4 v0 h-152.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-obs)"/><rect x="1075" y="313" width="30" height="30" rx="6" fill="var(--c-obs-s)"/><path d="M1084,333 h12 c-1.5,-1.5 -2,-3 -2,-6 a4,4 0 0 0 -8,0 c0,3 -0.5,4.5 -2,6 z" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M1088.5,335.5 a1.6,1.6 0 0 0 3,0" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:alert--><!--<image href="../assets/icons/alert.svg" x="1077" y="315" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="1113" y="333" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">PrometheusRule</text><text x="1075" y="359" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">5xx &gt; 5% for 2m</text><rect x="1075" y="367" width="41" height="15" rx="3" fill="var(--c-obs-s)"/><text x="1081" y="377.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-obs)">alert</text></g><g><rect x="862" y="460" width="176" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-obs)" stroke-width="1.3"/><path d="M867,460.65 h166 a4.4,4.4 0 0 1 4.4,4.4 v0 h-174.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-obs)"/><rect x="875" y="473" width="30" height="30" rx="6" fill="var(--c-obs-s)"/><line x1="884" y1="495" x2="884" y2="490" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="889" y1="495" x2="889" y2="486" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="894" y1="495" x2="894" y2="482" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="881" y1="496.5" x2="899" y2="496.5" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:grafana--><!--<image href="../assets/icons/grafana.svg" x="877" y="475" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="913" y="493" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Grafana</text><text x="875" y="519" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">dashboards</text><rect x="875" y="527" width="81" height="15" rx="3" fill="var(--c-obs-s)"/><text x="881" y="537.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-obs)">live metrics</text></g><line x1="152" y1="164" x2="188" y2="164" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><line x1="342" y1="164" x2="384" y2="164" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><line x1="473" y1="208" x2="473" y2="296" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><line x1="558" y1="164" x2="622" y2="164" stroke="var(--c-app)" stroke-width="1.6" marker-end="url(#mreq)" fill="none"/><polyline points="558,344 716,344 716,212" stroke="var(--dg-line)" stroke-width="1.6" marker-end="url(#mdata)" fill="none"/><polyline points="358,504 661,504 661,212" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><line x1="862" y1="164" x2="810" y2="164" stroke="var(--c-obs)" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#mobs)" fill="none"/><polyline points="950,208 950,252 942,252 942,296" stroke="var(--c-obs)" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#mobs)" fill="none"/><polyline points="862,344 776,344 776,212" stroke="var(--c-obs)" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#mobs)" fill="none"/><line x1="1022" y1="344" x2="1058" y2="344" stroke="var(--c-obs)" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#mobs)" fill="none"/><polyline points="942,388 942,422 950,422 950,456" stroke="var(--c-obs)" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#mobs)" fill="none"/><circle cx="170" cy="164" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="170" y="167.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">1</text><circle cx="363" cy="164" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="363" y="167.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">2</text><circle cx="473" cy="252" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="473" y="255.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">3</text><circle cx="590" cy="164" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="590" y="167.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">4</text><circle cx="637" cy="344" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="637" y="347.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">5</text><circle cx="509.5" cy="504" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="509.5" y="507.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">6</text><circle cx="836" cy="164" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="836" y="167.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">7</text><circle cx="950" cy="230" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="950" y="233.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">8</text><circle cx="776" cy="278" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="776" y="281.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">9</text><circle cx="1040" cy="344" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="1040" y="347.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">10</text><circle cx="942" cy="405" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="942" y="408.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">11</text></svg>
+      </div>
+      <figcaption>The stack as it ran. Arrow 4 is the only way Jenkins touched the cluster, and the stage didn't pass until the rollout did. Everything dashed (7 through 11) is the monitoring side: discovered through a <code>ServiceMonitor</code>, not configured by hand per target.</figcaption>
+    </figure>
+
+    <div class="wiring">
+      <div class="panel">
+        <h4>How the components communicate</h4>
+        <table class="wire">
+          <thead><tr><th>No</th><th>From &rarr; to</th><th>Mechanism</th><th>What happens</th></tr></thead>
+          <tbody>
+          <tr><td>1</td><td class="ft">Engineer &rarr; GitHub</td><td class="mech">git push</td><td>A code change lands in the repository Jenkins watches.</td></tr>
+          <tr><td>2</td><td class="ft">GitHub &rarr; Jenkins</td><td class="mech">triggers job</td><td>Starts the declarative pipeline: checkout, build, push, deploy.</td></tr>
+          <tr><td>3</td><td class="ft">Jenkins &rarr; Docker Hub</td><td class="mech">docker push</td><td>Pushes the image twice: under the build number and under <code>latest</code>.</td></tr>
+          <tr><td>4</td><td class="ft">Jenkins &rarr; FitTrack app</td><td class="mech">kubectl set image</td><td>Points the Deployment at the new tag, then waits on <code>rollout status</code>; a rollout that never converges fails the build.</td></tr>
+          <tr><td>5</td><td class="ft">Docker Hub &rarr; FitTrack app</td><td class="mech">image pull</td><td>The kubelet pulls the newly tagged image for the replacement pods.</td></tr>
+          <tr><td>6</td><td class="ft">Helm &rarr; FitTrack app</td><td class="mech">helm install / upgrade</td><td>Installs FitTrack from its own chart, and kube-prometheus-stack from <code>monitoring-values.yaml</code>.</td></tr>
+          <tr><td>7</td><td class="ft">ServiceMonitor &rarr; FitTrack app</td><td class="mech">label selector</td><td>Names the Service and the <code>/metrics</code> endpoint Prometheus should scrape.</td></tr>
+          <tr><td>8</td><td class="ft">ServiceMonitor &rarr; Prometheus</td><td class="mech">target discovery</td><td>The operator turns the monitor into a scrape target, even though it lives outside the monitoring namespace.</td></tr>
+          <tr><td>9</td><td class="ft">Prometheus &rarr; FitTrack app</td><td class="mech">HTTP scrape</td><td>Reads request counts per route from FitTrack's <code>/metrics</code>.</td></tr>
+          <tr><td>10</td><td class="ft">Prometheus &rarr; PrometheusRule</td><td class="mech">rule evaluation</td><td>Fires only when more than 5% of requests return 5xx for two continuous minutes.</td></tr>
+          <tr><td>11</td><td class="ft">Prometheus &rarr; Grafana</td><td class="mech">PromQL</td><td>Feeds the custom FitTrack dashboard.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="panel">
+          <h4>Legend</h4>
+          <div class="key">
+            <div><i style="background:var(--c-neu)"></i><span><b>Actors &amp; registry</b>engineer, Docker Hub</span></div>
+            <div><i style="background:var(--c-ctl)"></i><span><b>Source, CI &amp; packaging</b>GitHub, Jenkins, Helm</span></div>
+            <div><i style="background:var(--c-app)"></i><span><b>Application workload</b>FitTrack in the cluster</span></div>
+            <div><i style="background:var(--c-obs)"></i><span><b>Monitoring</b>ServiceMonitor, Prometheus, rule, Grafana</span></div>
+            <div><u style="border-color:var(--c-ctl)"></u><span><b>Pipeline step</b>push, build, install</span></div>
+            <div><u style="border-color:var(--c-app)"></u><span><b>Deploy</b>kubectl set image</span></div>
+            <div><u style="border-color:var(--dg-line)"></u><span><b>Image pull</b>registry to kubelet</span></div>
+            <div><u style="border-color:var(--c-obs); border-top-style:dashed"></u><span><b>Metrics path</b>discovered, not hard-coded</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h4>What was reachable</h4>
+          <p class="surface"><b>Public &mdash;</b> nothing; the cluster lived on my laptop and had no ingress.<br>
+          <b>Internal &mdash;</b> FitTrack, Prometheus, Grafana and Alertmanager, all inside the cluster.<br>
+          <b>Outside it &mdash;</b> GitHub and Docker Hub. Jenkins needed a working <code>kubectl</code> context to reach the cluster at all, which turned out to be the hard part.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What I verified, and how</h2>
+      <p class="h2note">Evidence, separated from design intent</p>
+      <p>Building something and being able to prove it works are different claims, so I've kept them separate below. <strong>Measured</strong> means I created the condition myself and recorded what happened. <strong>Observed</strong> means I looked at the running cluster and saw the state it was already in. <strong>By design</strong> means the configuration guarantees it, but I didn't run a test against it &mdash; better to say that plainly than dress it up as a result.</p>
+    </div>
+
+    <div class="ledger">
+
+      <div class="v-row observed">
+        <div class="v-tag">Observed</div>
+        <div>
+          <h3>Grafana showed live FitTrack metrics through the ServiceMonitor</h3>
+          <p>Once the cross-namespace discovery setting was in, Prometheus picked up FitTrack's <code>ServiceMonitor</code> and the custom dashboard showed request counts per route coming from the app's own <code>/metrics</code> endpoint &mdash; real application data, not just node metrics.</p>
+          <p class="v-method"><b>Method</b> Checked the scrape target in Prometheus and the panels on the FitTrack dashboard in Grafana.</p>
+        </div>
+      </div>
+      <div class="v-row observed">
+        <div class="v-tag">Observed</div>
+        <div>
+          <h3>The 5xx alert rule reached the firing state</h3>
+          <p>The <code>PrometheusRule</code> appeared in Prometheus and was captured firing on the error threshold. I'm recording that the rule fired, not a timed measurement of how long detection took &mdash; I didn't stopwatch the gap between the first errors and the alert.</p>
+          <p class="v-method"><b>Method</b> Read the rule's state in the alerting view (screenshot below).</p>
+        </div>
+      </div>
+      <div class="v-row observed">
+        <div class="v-tag">Observed</div>
+        <div>
+          <h3>A push ended with the new image running, with no manual step</h3>
+          <p>After the <code>kubectl</code> problem below was fixed, a commit went through checkout, build, a push of both tags to Docker Hub, and <code>kubectl set image</code> with <code>rollout status</code>, all from the one pipeline run.</p>
+          <p class="v-method"><b>Method</b> Followed the stage view in Jenkins and the Deployment's image tag in the cluster afterwards.</p>
+        </div>
+      </div>
+      <div class="v-row design">
+        <div class="v-tag">By design</div>
+        <div>
+          <h3>A rollout that never converges fails the build &mdash; untested</h3>
+          <p>The Deploy stage waits on <code>rollout status</code>, which exits non-zero if the rollout doesn't complete. I never pushed a deliberately broken image to watch the stage go red, so this is what the stage is built to do, not a failure I forced.</p>
+          <p class="v-method"><b>Method</b> Reviewed the Deploy stage in the <code>Jenkinsfile</code>. Not tested with a bad image.</p>
+        </div>
+      </div>
+      <div class="v-row design">
+        <div class="v-tag">By design</div>
+        <div>
+          <h3>Rollback is one <code>helm rollback</code> &mdash; not exercised</h3>
+          <p>Every install of the chart is a numbered release, and the same chart takes per-environment values through <code>--set</code> or a values file. I didn't run a rollback against a bad release here, so I'm claiming the mechanism, not a recovery.</p>
+          <p class="v-method"><b>Method</b> Reviewed the chart's templated values and the release history. No rollback was performed.</p>
+        </div>
+      </div>
+
+    </div>
+    <p class="legend">Five claims. three observed, two stated as design properties rather than dressed up as results.</p>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Proof</h2>
+      <p class="h2note">From the running cluster</p>
+    </div>
+    <div class="shots">
+      <figure>
+        <img loading="lazy" alt="Grafana dashboard showing live FitTrack application metrics" src="https://learn.nextwork.org/thoughtful_white_zany_vampire/uploads/15afd2e5-d464-4cb6-89bc-947b6d20187f_q1bqjlia">
+        <figcaption>The FitTrack dashboard on live app metrics.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="Prometheus alert rule firing on the 5xx error threshold" src="https://learn.nextwork.org/thoughtful_white_zany_vampire/uploads/15afd2e5-d464-4cb6-89bc-947b6d20187f_4erk6j8j">
+        <figcaption>The <code>PrometheusRule</code> firing on its error threshold.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What actually broke</h2>
+      <p class="h2note">One failure worth keeping</p>
+      <div class="broke">
+        <article>
+          <h3>Jenkins couldn't find <code>kubectl</code>, then couldn't use it against the cluster</h3>
+          <p>Checkout, build and push all went green early. The Deploy stage didn't: Jenkins couldn't discover the <code>kubectl</code> binary, and when it could, it still couldn't execute commands against the cluster. Most of the roughly eight hours went here. It's the least glamorous lesson in the project &mdash; a CI server that deploys needs its own working toolchain and its own cluster access, and neither comes for free just because your laptop has them.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Source</h2>
+      <p class="h2note">Everything on this page came from here</p>
+      <div class="src">
+        <p>The Flask app with its Prometheus metrics, the Helm chart and its <code>ServiceMonitor</code>, and the <code>Jenkinsfile</code> live here: <a href="https://github.com/kingswanzy2020/fittrack">kingswanzy2020/fittrack</a>.</p>
+        <pre>git clone https://github.com/kingswanzy2020/fittrack.git</pre>
+      </div>
+      <p class="stack"><b>Stack</b><br>Kubernetes &middot; Helm charts &amp; templating &middot; kube-prometheus-stack &middot; Prometheus &middot; Grafana &middot; PrometheusRules &middot; ServiceMonitors &middot; Jenkins declarative pipeline &middot; Docker &middot; Docker Hub &middot; Flask instrumentation &middot; liveness / readiness probes &middot; resource limits</p>
+    </div>
+  </section>
+
+  <nav class="next" aria-label="More case studies">
+    <a href="../jenkins-argocd-gitops/"><small>&larr; Previous</small>Jenkins CI handing off to ArgoCD</a>
+    <a class="r" href="../eks-cluster-launch/"><small>Next &rarr;</small>Launching an EKS cluster with eksctl</a>
+  </nav>
+
+  <footer class="col">
+    Ahmed Tetteh &middot; <a href="mailto:kingsleyswanzy@gmail.com">kingsleyswanzy@gmail.com</a> &middot; <a href="https://github.com/kingswanzy2020">github.com/kingswanzy2020</a> &middot; <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a><br>
+    Static HTML and CSS. No JavaScript, no framework, no build step for the page itself.
+  </footer>
+
+</div>
+</body>
+</html>
