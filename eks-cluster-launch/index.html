@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Case study: an Amazon EKS cluster created with eksctl through CloudFormation, an IAM access entry mapped into Kubernetes RBAC, and worker nodes deleted on purpose to watch them replaced.">
+<title>Launch an EKS Cluster</title>
+<meta name="theme-color" content="#0b1220">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@500;600&display=swap">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body class="case">
+<div class="bar">
+  <div class="wrap">
+    <a class="brand" href="../"><span class="avatar sm" aria-hidden="true">AT</span><b>Ahmed Tetteh</b><small>DevOps &middot; Platform &middot; SRE</small></a>
+    <nav>
+      <a class="back" href="../#work">&larr; All case studies</a>
+      <a href="https://github.com/kingswanzy2020">GitHub</a>
+      <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a>
+      <a href="mailto:kingsleyswanzy@gmail.com">Email</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div class="col">
+      <p class="eyebrow">Case study &mdash; Kubernetes / AWS</p>
+      <h1>Launching an Amazon EKS cluster with eksctl</h1>
+      <p class="standfirst">I created a managed Kubernetes cluster on Amazon EKS with one <code>eksctl</code> command, mapped my IAM user into Kubernetes RBAC with an access entry, then terminated the worker nodes on purpose to watch the node group put them back.</p>
+
+      <div class="status">
+        <span class="chip">Guided lab</span>
+        <p>I built this in my own AWS account as a guided NextWork lab. I'm not pointing you at a live endpoint &mdash; the screenshots below were captured during the build, and the one <code>eksctl create cluster</code> command shown below recreates the cluster and both CloudFormation stacks. Everything below is in the past tense for that reason.</p>
+      </div>
+    </div>
+
+    <dl class="spec">
+      <div><dt>Platform</dt><dd>Amazon EKS, Kubernetes 1.33</dd></div>
+      <div><dt>Provisioned by</dt><dd>eksctl &rarr; 2 CloudFormation stacks</dd></div>
+      <div><dt>Nodes</dt><dd>3 &times; t3.micro, min 1 / max 3</dd></div>
+      <div><dt>Region</dt><dd>ap-northeast-1, 3 AZs</dd></div>
+      <div><dt>Access</dt><dd>IAM access entry &rarr; RBAC</dd></div>
+      <div><dt>Run from</dt><dd>an EC2 admin instance</dd></div>
+    </dl>
+  </header>
+
+  <section>
+    <div class="col">
+      <h2>What it does</h2>
+      <p class="h2note">Summary</p>
+      <p>From an EC2 instance I used as an admin box, I ran <code>eksctl create cluster</code> with the cluster name, a node group of three <code>t3.micro</code> nodes (minimum 1, maximum 3), Kubernetes <code>1.33</code> and the <code>ap-northeast-1</code> region. eksctl handed that to CloudFormation as two stacks: one for the control plane and its VPC networking, one for the node group. The EKS console wouldn't show me the nodes until I added an IAM access entry mapping my IAM user to <code>AmazonEKSClusterAdminPolicy</code>. Then I terminated node instances directly in EC2 and watched replacements launch.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>How it is wired</h2>
+      <p class="h2note">The mechanism</p>
+      <p><strong>Why <code>eksctl</code> instead of building the pieces by hand?</strong> A working cluster needs a control plane, a VPC with the right subnets and routes, IAM roles, and worker nodes that know how to join. <code>eksctl</code> takes one declarative command and turns it into CloudFormation stacks, so every resource it made is traceable to a stack and deletable with it.</p>
+      <p><strong>Why two stacks?</strong> The cluster stack holds the control plane and the networking the pods and nodes need to talk to each other. The node group stack holds the EC2 instances that actually run pods. Keeping them separate means the node group can be changed or replaced without touching the control plane.</p>
+      <p><strong>Why did I need an access entry when I already had an AWS admin login?</strong> Kubernetes has its own permission model. Being allowed to call the EKS API doesn't make my IAM user a Kubernetes user. An access entry maps the IAM identity into the cluster's RBAC; with <code>AmazonEKSClusterAdminPolicy</code> attached, the console could finally list the nodes.</p>
+      <p><strong>What actually replaced the nodes I deleted?</strong> The node group's desired size was three. When I terminated instances in EC2, the gap between desired and actual showed up and the node group's Auto Scaling group launched replacements, which joined the cluster on their own. That's the same desired-state idea Kubernetes uses for pods, applied one level down to the machines.</p>
+    </div>
+
+    <figure class="fig">
+      <div class="fig-scroll">
+<svg viewBox="0 0 1244 480" role="img" aria-label="An engineer connects over SSH to an EC2 admin instance and runs eksctl, which creates two CloudFormation stacks. The cluster stack creates the EKS control plane and VPC; the node group stack creates three t3.micro nodes that join the control plane. An IAM access entry maps the engineer&#x27;s IAM user into RBAC, and the node group&#x27;s Auto Scaling group replaces terminated nodes."><defs><marker id="mreq" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-app)"/></marker><marker id="mdata" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--dg-line)"/></marker><marker id="mctl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-ctl)"/></marker><marker id="mobs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-obs)"/></marker><marker id="maws" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-aws)"/></marker><marker id="mneu" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-neu)"/></marker></defs><rect x="390" y="60" width="838" height="390" rx="8" fill="none" stroke="var(--c-aws)" stroke-width="1.2" stroke-dasharray="6 5" opacity=".8"/><text x="408" y="53" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="10.5" letter-spacing="1.3" fill="var(--c-aws)">AWS ACCOUNT — ap-northeast-1 · CLOUDFORMATION · EKS · EC2 · IAM</text><g><rect x="16" y="200" width="136" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M21,200.65 h126 a4.4,4.4 0 0 1 4.4,4.4 v0 h-134.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="29" y="213" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><circle cx="44" cy="224" r="3.6" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M36.5,236 a7.5,6.5 0 0 1 15,0" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:engineer--><!--<image href="../assets/icons/engineer.svg" x="31" y="215" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="67" y="233" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Engineer</text><text x="29" y="259" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">IAM user</text><rect x="29" y="267" width="52" height="15" rx="3" fill="var(--c-neu-s)"/><text x="35" y="277.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">SSH key</text></g><g><rect x="192" y="200" width="170" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M197,200.65 h160 a4.4,4.4 0 0 1 4.4,4.4 v0 h-168.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="205" y="213" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><rect x="211" y="221" width="18" height="14" rx="2" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="214.5,225.5 217.5,228 214.5,230.5" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="219.5" y1="231" x2="224.5" y2="231" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:ec2--><!--<image href="../assets/icons/ec2.svg" x="207" y="215" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="243" y="233" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Admin EC2</text><text x="205" y="259" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">runs eksctl</text><rect x="205" y="267" width="116" height="15" rx="3" fill="var(--c-aws-s)"/><text x="211" y="277.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">needed an IAM role</text></g><g><rect x="414" y="110" width="200" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M419,110.65 h190 a4.4,4.4 0 0 1 4.4,4.4 v0 h-198.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="427" y="123" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><path d="M436,130 h8 l5,5 v11 h-13 z" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="444,130 444,135 449,135" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="439" y1="139" x2="446" y2="139" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="439" y1="142.5" x2="446" y2="142.5" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:cloudformation--><!--<image href="../assets/icons/cloudformation.svg" x="429" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="465" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Cluster stack</text><text x="427" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">control plane + VPC</text><rect x="427" y="177" width="92" height="15" rx="3" fill="var(--c-aws-s)"/><text x="433" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">CloudFormation</text></g><g><rect x="414" y="300" width="200" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M419,300.65 h190 a4.4,4.4 0 0 1 4.4,4.4 v0 h-198.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="427" y="313" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><path d="M436,320 h8 l5,5 v11 h-13 z" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="444,320 444,325 449,325" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="439" y1="329" x2="446" y2="329" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="439" y1="332.5" x2="446" y2="332.5" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:cloudformation--><!--<image href="../assets/icons/cloudformation.svg" x="429" y="315" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="465" y="333" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Node group stack</text><text x="427" y="359" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">worker instances</text><rect x="427" y="367" width="98" height="15" rx="3" fill="var(--c-aws-s)"/><text x="433" y="377.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">CREATE_COMPLETE</text></g><g><rect x="674" y="110" width="200" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-ctl)" stroke-width="1.3"/><path d="M679,110.65 h190 a4.4,4.4 0 0 1 4.4,4.4 v0 h-198.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-ctl)"/><rect x="687" y="123" width="30" height="30" rx="6" fill="var(--c-ctl-s)"/><circle cx="702" cy="138" r="4" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="702" cy="138" r="8" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2.6 2.6"/><!--ICON:eks--><!--<image href="../assets/icons/eks.svg" x="689" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="725" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">EKS control plane</text><text x="687" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">Kubernetes 1.33</text><rect x="687" y="177" width="92" height="15" rx="3" fill="var(--c-ctl-s)"/><text x="693" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-ctl)">managed by AWS</text></g><g><rect x="944" y="110" width="246" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M949,110.65 h236 a4.4,4.4 0 0 1 4.4,4.4 v0 h-244.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="957" y="123" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><circle cx="968" cy="138" r="4" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="972" y1="138" x2="981" y2="138" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="978" y1="138" x2="978" y2="141.5" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="981" y1="138" x2="981" y2="141" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:iam--><!--<image href="../assets/icons/iam.svg" x="959" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="995" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">IAM access entry</text><text x="957" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">my IAM user → RBAC</text><rect x="957" y="177" width="167" height="15" rx="3" fill="var(--c-aws-s)"/><text x="963" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">AmazonEKSClusterAdminPolicy</text></g><g><rect x="674" y="300" width="200" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-app)" stroke-width="1.3"/><path d="M679,300.65 h190 a4.4,4.4 0 0 1 4.4,4.4 v0 h-198.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-app)"/><rect x="687" y="313" width="30" height="30" rx="6" fill="var(--c-app-s)"/><rect x="694" y="320" width="16" height="7" rx="1.5" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><rect x="694" y="330" width="16" height="7" rx="1.5" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="697.5" cy="323.5" r="0.9" fill="var(--c-app)"/><circle cx="697.5" cy="333.5" r="0.9" fill="var(--c-app)"/><!--ICON:ec2--><!--<image href="../assets/icons/ec2.svg" x="689" y="315" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="725" y="333" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Node group</text><text x="687" y="359" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">3 × t3.micro · 3 AZs</text><rect x="687" y="367" width="98" height="15" rx="3" fill="var(--c-app-s)"/><text x="693" y="377.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-app)">desired 3 · 1–3</text></g><g><rect x="944" y="300" width="246" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M949,300.65 h236 a4.4,4.4 0 0 1 4.4,4.4 v0 h-244.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="957" y="313" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><path d="M979,325 a7.5,7.5 0 0 0 -13.5,-1" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="965,320 965.3,324.2 969.5,324" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M965,331 a7.5,7.5 0 0 0 13.5,1" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="979,336 978.7,331.8 974.5,332" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:ec2--><!--<image href="../assets/icons/ec2.svg" x="959" y="315" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="995" y="333" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Auto Scaling group</text><text x="957" y="359" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">behind the node group</text><rect x="957" y="367" width="121" height="15" rx="3" fill="var(--c-aws-s)"/><text x="963" y="377.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">replaces lost nodes</text></g><line x1="152" y1="244" x2="188" y2="244" stroke="var(--c-neu)" stroke-width="1.4" marker-end="url(#mneu)" fill="none"/><polyline points="277,200 277,154 410,154" stroke="var(--c-aws)" stroke-width="1.4" marker-end="url(#maws)" fill="none"/><polyline points="277,288 277,344 410,344" stroke="var(--c-aws)" stroke-width="1.4" marker-end="url(#maws)" fill="none"/><line x1="614" y1="154" x2="670" y2="154" stroke="var(--c-aws)" stroke-width="1.4" marker-end="url(#maws)" fill="none"/><line x1="614" y1="344" x2="670" y2="344" stroke="var(--c-aws)" stroke-width="1.4" marker-end="url(#maws)" fill="none"/><line x1="774" y1="300" x2="774" y2="202" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><line x1="944" y1="154" x2="878" y2="154" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><line x1="944" y1="344" x2="878" y2="344" stroke="var(--c-app)" stroke-width="1.6" marker-end="url(#mreq)" fill="none"/><circle cx="170" cy="244" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="170" y="247.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">1</text><circle cx="343.5" cy="154" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="343.5" y="157.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">2</text><circle cx="343.5" cy="344" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="343.5" y="347.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">3</text><circle cx="642" cy="154" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="642" y="157.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">4</text><circle cx="642" cy="344" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="642" y="347.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">5</text><circle cx="774" cy="251" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="774" y="254.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">6</text><circle cx="911" cy="154" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="911" y="157.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">7</text><circle cx="911" cy="344" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="911" y="347.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">8</text></svg>
+      </div>
+      <figcaption>The cluster as eksctl built it. Arrows 2 through 5 are one command turned into two CloudFormation stacks; arrow 8 is the part I tested by breaking it &mdash; I terminated nodes and the Auto Scaling group put the count back.</figcaption>
+    </figure>
+
+    <div class="wiring">
+      <div class="panel">
+        <h4>How the components communicate</h4>
+        <table class="wire">
+          <thead><tr><th>No</th><th>From &rarr; to</th><th>Mechanism</th><th>What happens</th></tr></thead>
+          <tbody>
+          <tr><td>1</td><td class="ft">Engineer &rarr; Admin EC2</td><td class="mech">SSH</td><td>I ran everything from this instance rather than my laptop.</td></tr>
+          <tr><td>2</td><td class="ft">Admin EC2 &rarr; Cluster stack</td><td class="mech">eksctl create cluster</td><td>Name, region, version and node group in one command; eksctl writes the stacks.</td></tr>
+          <tr><td>3</td><td class="ft">Admin EC2 &rarr; Node group stack</td><td class="mech">eksctl</td><td>The second stack, for the node group.</td></tr>
+          <tr><td>4</td><td class="ft">Cluster stack &rarr; EKS control plane</td><td class="mech">stack resources</td><td>The control plane and the VPC resources pods and nodes communicate over.</td></tr>
+          <tr><td>5</td><td class="ft">Node group stack &rarr; Node group</td><td class="mech">stack resources</td><td>Three <code>t3.micro</code> instances across three Availability Zones.</td></tr>
+          <tr><td>6</td><td class="ft">Node group &rarr; EKS control plane</td><td class="mech">kubelet join</td><td>Each node registers with the control plane and shows <code>Ready</code>.</td></tr>
+          <tr><td>7</td><td class="ft">IAM access entry &rarr; EKS control plane</td><td class="mech">access entry</td><td>Maps my IAM user to cluster-admin in RBAC, which is what made the nodes visible in the console.</td></tr>
+          <tr><td>8</td><td class="ft">Auto Scaling group &rarr; Node group</td><td class="mech">desired capacity</td><td>Terminated instances are replaced to get back to three.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="panel">
+          <h4>Legend</h4>
+          <div class="key">
+            <div><i style="background:var(--c-neu)"></i><span><b>Human actor</b>me, over SSH</span></div>
+            <div><i style="background:var(--c-aws)"></i><span><b>AWS-managed</b>EC2, CloudFormation, IAM, Auto Scaling</span></div>
+            <div><i style="background:var(--c-ctl)"></i><span><b>Kubernetes control plane</b>managed by EKS</span></div>
+            <div><i style="background:var(--c-app)"></i><span><b>Workers</b>the node group</span></div>
+            <div><u style="border-color:var(--c-aws)"></u><span><b>Provisioning</b>eksctl through CloudFormation</span></div>
+            <div><u style="border-color:var(--c-ctl)"></u><span><b>Cluster membership</b>join and RBAC</span></div>
+            <div><u style="border-color:var(--c-app)"></u><span><b>Self-healing</b>desired vs actual nodes</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h4>What was reachable</h4>
+          <p class="surface"><b>Public &mdash;</b> the EKS API endpoint, behind IAM authentication. No workloads were exposed.<br>
+          <b>Internal &mdash;</b> the three worker nodes, inside the VPC the cluster stack created.<br>
+          <b>Access &mdash;</b> my IAM user only, through the access entry; nothing shared.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What I verified, and how</h2>
+      <p class="h2note">Evidence, separated from design intent</p>
+      <p>Building something and being able to prove it works are different claims, so I've kept them separate below. <strong>Measured</strong> means I created the condition myself and recorded what happened. <strong>Observed</strong> means I looked at the running system and saw the state it was already in. <strong>By design</strong> means the configuration guarantees it, but I didn't run a test against it &mdash; better to say that plainly than dress it up as a result.</p>
+    </div>
+
+    <div class="ledger">
+
+      <div class="v-row measured">
+        <div class="v-tag">Measured</div>
+        <div>
+          <h3>Terminated nodes were replaced without me doing anything</h3>
+          <p>I terminated node-group instances directly in the EC2 console. The instance list then showed the terminated ones next to new instances already <code>Running</code> with their status checks passed, back at three &mdash; the node group's desired size.</p>
+          <p class="v-method"><b>Method</b> Terminated instances in EC2, then watched the instance list until the replacements were <code>Running</code>.</p>
+        </div>
+      </div>
+      <div class="v-row observed">
+        <div class="v-tag">Observed</div>
+        <div>
+          <h3>One command produced both stacks and a three-node cluster</h3>
+          <p>The node group stack reached <code>CREATE_COMPLETE</code>, and the EKS console showed <code>nextwork-eks-cluster</code> on Kubernetes 1.33 with three nodes, all <code>Ready</code>. It took about an hour including setup and reading, which is mostly waiting on CloudFormation.</p>
+          <p class="v-method"><b>Method</b> Read the CloudFormation stack status and the cluster's Compute tab.</p>
+        </div>
+      </div>
+      <div class="v-row observed">
+        <div class="v-tag">Observed</div>
+        <div>
+          <h3>The console couldn't see the nodes until the access entry existed</h3>
+          <p>Before the access entry, the EKS console wouldn't show node details even though I was signed in as an AWS admin. After mapping my IAM user to <code>AmazonEKSClusterAdminPolicy</code>, the nodes appeared.</p>
+          <p class="v-method"><b>Method</b> Checked the Compute tab before and after creating the access entry.</p>
+        </div>
+      </div>
+      <div class="v-row design">
+        <div class="v-tag">By design</div>
+        <div>
+          <h3>Every resource is traceable to a stack</h3>
+          <p>Because eksctl went through CloudFormation, the VPC, the roles and the instances all belong to one of two stacks and go away with them. I'm stating that from how the stacks are built; I didn't audit every resource against the stack lists.</p>
+          <p class="v-method"><b>Method</b> Reviewed the two stacks' resource lists at a high level.</p>
+        </div>
+      </div>
+
+    </div>
+    <p class="legend">Four claims. one measured, two observed, one stated as a design property rather than dressed up as a result.</p>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Proof</h2>
+      <p class="h2note">Captured during the build</p>
+    </div>
+    <div class="shots">
+      <figure>
+        <img loading="lazy" alt="Terminal on the admin EC2 instance: eksctl create cluster command failing with eksctl: command not found" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/kubernetes/launch-kubernetes-cluster/Screenshots/Screenshot%20from%202026-01-08%2006-50-29.png">
+        <figcaption>The first attempt: <code>eksctl: command not found</code>.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="CloudFormation stacks list showing the eksctl node group stack in CREATE_COMPLETE" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/kubernetes/launch-kubernetes-cluster/Screenshots/Screenshot%20from%202026-01-08%2007-54-22.png">
+        <figcaption>The node group stack at <code>CREATE_COMPLETE</code>.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="EKS console: nextwork-eks-cluster active on Kubernetes 1.33 with three nodes Ready and the access entry created" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/kubernetes/launch-kubernetes-cluster/Screenshots/Screenshot%20from%202026-01-08%2008-28-14.png">
+        <figcaption>The cluster on 1.33, three nodes <code>Ready</code>, access entry created.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="EC2 instances list with terminated node instances alongside replacement instances running" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/kubernetes/launch-kubernetes-cluster/Screenshots/Screenshot%20from%202026-01-08%2008-59-31.png">
+        <figcaption>Terminated nodes next to their running replacements.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What actually broke</h2>
+      <p class="h2note">One failure worth keeping</p>
+      <div class="broke">
+        <article>
+          <h3><code>eksctl: command not found</code>, then no permission to use it</h3>
+          <p>The first <code>eksctl create cluster</code> failed because the tool simply wasn't installed on the admin instance. Once it was, the next run failed because the instance had no credentials allowed to create an EKS cluster. Two failures, neither of them Kubernetes &mdash; the tool and the identity running it have to exist before any of the interesting parts can.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Source</h2>
+      <p class="h2note">Everything on this page came from here</p>
+      <div class="src">
+        <p>This was a guided lab, so there's no standalone repo; the write-up and the NextWork documentation with every step live in my portfolio repo: <a href="https://github.com/kingswanzy2020/Projects/tree/main/kubernetes/launch-kubernetes-cluster">Projects/kubernetes/launch-kubernetes-cluster</a>.</p>
+        <pre>eksctl create cluster --name nextwork-eks-cluster \
+  --nodegroup-name nextwork-nodegroup --node-type t3.micro \
+  --nodes 3 --nodes-min 1 --nodes-max 3 \
+  --version 1.33 --region ap-northeast-1</pre>
+      </div>
+      <p class="stack"><b>Stack</b><br>Amazon EKS &middot; eksctl &middot; CloudFormation &middot; managed node groups &middot; EC2 Auto Scaling &middot; IAM access entries &middot; Kubernetes RBAC &middot; EC2</p>
+    </div>
+  </section>
+
+  <nav class="next" aria-label="More case studies">
+    <a href="../helm-cicd-monitoring/"><small>&larr; Previous</small>Kubernetes CI/CD with Helm and monitoring</a>
+    <a class="r" href="../eks-backend-image/"><small>Next &rarr;</small>Packaging a backend for EKS with ECR</a>
+  </nav>
+
+  <footer class="col">
+    Ahmed Tetteh &middot; <a href="mailto:kingsleyswanzy@gmail.com">kingsleyswanzy@gmail.com</a> &middot; <a href="https://github.com/kingswanzy2020">github.com/kingswanzy2020</a> &middot; <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a><br>
+    Static HTML and CSS. No JavaScript, no framework, no build step for the page itself.
+  </footer>
+
+</div>
+</body>
+</html>

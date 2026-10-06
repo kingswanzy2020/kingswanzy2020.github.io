@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Case study: a Java web app delivered by an AWS-native pipeline built over seven days: CodePipeline, CodeBuild with CodeArtifact dependencies, S3 artifacts, CodeDeploy to EC2, and CloudFormation.">
+<title>7-Day AWS CI/CD Pipeline</title>
+<meta name="theme-color" content="#0b1220">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@500;600&display=swap">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body class="case">
+<div class="bar">
+  <div class="wrap">
+    <a class="brand" href="../"><span class="avatar sm" aria-hidden="true">AT</span><b>Ahmed Tetteh</b><small>DevOps &middot; Platform &middot; SRE</small></a>
+    <nav>
+      <a class="back" href="../#work">&larr; All case studies</a>
+      <a href="https://github.com/kingswanzy2020">GitHub</a>
+      <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a>
+      <a href="mailto:kingsleyswanzy@gmail.com">Email</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div class="col">
+      <p class="eyebrow">Case study &mdash; CI/CD / AWS</p>
+      <h1>A seven-day, AWS-native CI/CD pipeline for a Java web app</h1>
+      <p class="standfirst">Over seven consecutive days I built a delivery pipeline one AWS service at a time &mdash; CodeArtifact, CodeBuild, CodeDeploy, CloudFormation &mdash; and then joined them in CodePipeline, so a push to <code>main</code> ends with the change live on an EC2 web server.</p>
+
+      <div class="status">
+        <span class="chip">Guided lab</span>
+        <p>I built this in my own AWS account as a guided NextWork lab. I'm not pointing you at a live endpoint &mdash; the screenshots below were captured during the build, and the CloudFormation template, <code>buildspec.yml</code>, <code>appspec.yml</code> and the deployment scripts in the repo rebuild the pipeline and its web server. Everything below is in the past tense for that reason.</p>
+      </div>
+    </div>
+
+    <dl class="spec">
+      <div><dt>Orchestrator</dt><dd>AWS CodePipeline, 3 stages</dd></div>
+      <div><dt>Build</dt><dd>CodeBuild, Maven, Corretto 8</dd></div>
+      <div><dt>Dependencies</dt><dd>CodeArtifact, cached from Maven Central</dd></div>
+      <div><dt>Artifacts</dt><dd>S3, WAR file</dd></div>
+      <div><dt>Deploy</dt><dd>CodeDeploy to EC2 (Tomcat + Apache)</dd></div>
+      <div><dt>Infrastructure</dt><dd>CloudFormation, 16 resources</dd></div>
+    </dl>
+  </header>
+
+  <section>
+    <div class="col">
+      <h2>What it does</h2>
+      <p class="h2note">Summary</p>
+      <p>The app is a Java web app I generated with Maven on an EC2 development instance and pushed to GitHub. CodePipeline listens for pushes to <code>main</code> through a CodeConnections webhook and runs three stages. Source zips the commit. Build hands it to CodeBuild, which runs <code>buildspec.yml</code>, pulls every dependency through a private CodeArtifact repository, and writes the WAR file to S3. Deploy hands that artifact to CodeDeploy, which runs <code>appspec.yml</code>'s lifecycle scripts on an EC2 web server in its own VPC. By day six the whole stack &mdash; CodeArtifact, CodeBuild, CodeDeploy, roles and connection &mdash; was a CloudFormation template.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>How it is wired</h2>
+      <p class="h2note">The mechanism</p>
+      <p><strong>Why route dependencies through CodeArtifact?</strong> Maven reads <code>pom.xml</code>, and with <code>-s settings.xml</code> it asks CodeArtifact first. CodeArtifact serves what it has and fetches anything new from Maven Central once, then caches it. The build itself only ever talks to a private repository in my account, which needs an authorization token &mdash; and getting that token is where day three's first error came from.</p>
+      <p><strong>Why a separate web server, built from a template?</strong> The development instance is where I change code; the web server is what users hit. Keeping them apart means editing one can't break the other. I created the web server's VPC, subnet, route table, internet gateway, security group and instance from CloudFormation, so it can be rebuilt or deleted as one stack.</p>
+      <p><strong>Why lifecycle scripts?</strong> CodeDeploy doesn't know how to run a Java web app; <code>appspec.yml</code> tells it which scripts to run and when. <code>install_dependencies.sh</code> sets up Tomcat and Apache, <code>start_server.sh</code> starts both and enables them on boot, and <code>stop_server.sh</code> stops them cleanly. The CodeDeploy agent on the instance runs them in order.</p>
+      <p><strong>Why does a rollback only touch the Deploy stage?</strong> When I rolled back from CodePipeline, Source and Build kept the newest commit and only Deploy went back to the previous one. The artifact for the old version is still in S3, so going back is a redeploy of a known build, not a rebuild.</p>
+    </div>
+
+    <figure class="fig">
+      <div class="fig-scroll">
+<svg viewBox="0 0 1244 600" role="img" aria-label="A developer pushes to GitHub, which triggers CodePipeline through a webhook. The Build stage runs CodeBuild, which pulls dependencies through CodeArtifact (cached from Maven Central) and writes a WAR file to S3. The Deploy stage runs CodeDeploy, which takes the artifact from S3 and runs lifecycle scripts on the EC2 web server. CloudFormation provisions the pipeline resources and the web server&#x27;s network."><defs><marker id="mreq" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-app)"/></marker><marker id="mdata" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--dg-line)"/></marker><marker id="mctl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-ctl)"/></marker><marker id="mobs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-obs)"/></marker><marker id="maws" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-aws)"/></marker><marker id="mneu" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-neu)"/></marker></defs><rect x="384" y="60" width="844" height="520" rx="8" fill="none" stroke="var(--c-aws)" stroke-width="1.2" stroke-dasharray="6 5" opacity=".8"/><text x="402" y="53" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="10.5" letter-spacing="1.3" fill="var(--c-aws)">AWS ACCOUNT — CODEPIPELINE · CODEBUILD · CODEARTIFACT · CODEDEPLOY · S3 · EC2</text><g><rect x="16" y="110" width="136" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M21,110.65 h126 a4.4,4.4 0 0 1 4.4,4.4 v0 h-134.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="29" y="123" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><circle cx="44" cy="134" r="3.6" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M36.5,146 a7.5,6.5 0 0 1 15,0" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:engineer--><!--<image href="../assets/icons/engineer.svg" x="31" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="67" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Developer</text><text x="29" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">dev EC2 + VS Code</text><rect x="29" y="177" width="58" height="15" rx="3" fill="var(--c-neu-s)"/><text x="35" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">git push</text></g><g><rect x="192" y="110" width="160" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-ctl)" stroke-width="1.3"/><path d="M197,110.65 h150 a4.4,4.4 0 0 1 4.4,4.4 v0 h-158.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-ctl)"/><rect x="205" y="123" width="30" height="30" rx="6" fill="var(--c-ctl-s)"/><circle cx="215" cy="131.5" r="2.3" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="215" cy="144.5" r="2.3" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="225" cy="135" r="2.3" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="215" y1="133.8" x2="215" y2="142.2" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M225,137.3 c0,4 -10,3 -10,5" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:github--><!--<image href="../assets/icons/github.svg" x="207" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="243" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">GitHub</text><text x="205" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">nextwork-web-project</text><rect x="205" y="177" width="35" height="15" rx="3" fill="var(--c-ctl-s)"/><text x="211" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-ctl)">main</text></g><g><rect x="408" y="110" width="190" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-ctl)" stroke-width="1.3"/><path d="M413,110.65 h180 a4.4,4.4 0 0 1 4.4,4.4 v0 h-188.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-ctl)"/><rect x="421" y="123" width="30" height="30" rx="6" fill="var(--c-ctl-s)"/><path d="M443,135 a7.5,7.5 0 0 0 -13.5,-1" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="429,130 429.3,134.2 433.5,134" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M429,141 a7.5,7.5 0 0 0 13.5,1" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="443,146 442.7,141.8 438.5,142" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:codepipeline--><!--<image href="../assets/icons/codepipeline.svg" x="423" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="459" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">CodePipeline</text><text x="421" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">Source → Build → Deploy</text><rect x="421" y="177" width="98" height="15" rx="3" fill="var(--c-ctl-s)"/><text x="427" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-ctl)">superseded mode</text></g><g><rect x="1030" y="110" width="176" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M1035,110.65 h166 a4.4,4.4 0 0 1 4.4,4.4 v0 h-174.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="1043" y="123" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><path d="M1052,130 h8 l5,5 v11 h-13 z" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="1060,130 1060,135 1065,135" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="1055" y1="139" x2="1062" y2="139" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="1055" y1="142.5" x2="1062" y2="142.5" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:cloudformation--><!--<image href="../assets/icons/cloudformation.svg" x="1045" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="1081" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">CloudFormation</text><text x="1043" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">pipeline + web server</text><rect x="1043" y="177" width="81" height="15" rx="3" fill="var(--c-aws-s)"/><text x="1049" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">16 resources</text></g><g><rect x="408" y="290" width="190" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M413,290.65 h180 a4.4,4.4 0 0 1 4.4,4.4 v0 h-188.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="421" y="303" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><circle cx="436" cy="318" r="4.5" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="436" y1="309" x2="436" y2="312" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="436" y1="324" x2="436" y2="327" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="427" y1="318" x2="430" y2="318" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="442" y1="318" x2="445" y2="318" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="429.6" y1="311.6" x2="431.8" y2="313.8" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="440.2" y1="322.2" x2="442.4" y2="324.4" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="442.4" y1="311.6" x2="440.2" y2="313.8" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="431.8" y1="322.2" x2="429.6" y2="324.4" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:codebuild--><!--<image href="../assets/icons/codebuild.svg" x="423" y="305" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="459" y="323" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">CodeBuild</text><text x="421" y="349" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">buildspec.yml · Maven</text><rect x="421" y="357" width="116" height="15" rx="3" fill="var(--c-aws-s)"/><text x="427" y="367.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">logs to CloudWatch</text></g><g><rect x="640" y="290" width="160" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M645,290.65 h150 a4.4,4.4 0 0 1 4.4,4.4 v0 h-158.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="653" y="303" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><rect x="660" y="311" width="16" height="14" rx="2" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="668" cy="318" r="3.4" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="668" cy="318" r="0.9" fill="var(--c-aws)"/><!--ICON:s3--><!--<image href="../assets/icons/s3.svg" x="655" y="305" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="691" y="323" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">S3 artifacts</text><text x="653" y="349" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">WAR file</text><rect x="653" y="357" width="64" height="15" rx="3" fill="var(--c-aws-s)"/><text x="659" y="367.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">versioned</text></g><g><rect x="840" y="290" width="160" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M845,290.65 h150 a4.4,4.4 0 0 1 4.4,4.4 v0 h-158.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="853" y="303" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><path d="M868,309.5 l8,4 v9 l-8,4 l-8,-4 v-9 z" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="860,313.5 868,317.5 876,313.5" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="868" y1="317.5" x2="868" y2="326.5" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:codedeploy--><!--<image href="../assets/icons/codedeploy.svg" x="855" y="305" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="891" y="323" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">CodeDeploy</text><text x="853" y="349" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">appspec.yml hooks</text><rect x="853" y="357" width="64" height="15" rx="3" fill="var(--c-aws-s)"/><text x="859" y="367.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">AllAtOnce</text></g><g><rect x="1030" y="290" width="176" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-app)" stroke-width="1.3"/><path d="M1035,290.65 h166 a4.4,4.4 0 0 1 4.4,4.4 v0 h-174.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-app)"/><rect x="1043" y="303" width="30" height="30" rx="6" fill="var(--c-app-s)"/><rect x="1050" y="310" width="16" height="7" rx="1.5" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><rect x="1050" y="320" width="16" height="7" rx="1.5" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="1053.5" cy="313.5" r="0.9" fill="var(--c-app)"/><circle cx="1053.5" cy="323.5" r="0.9" fill="var(--c-app)"/><!--ICON:ec2--><!--<image href="../assets/icons/ec2.svg" x="1045" y="305" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="1081" y="323" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">EC2 web server</text><text x="1043" y="349" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">Tomcat + Apache</text><rect x="1043" y="357" width="98" height="15" rx="3" fill="var(--c-app-s)"/><text x="1049" y="367.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-app)">role: webserver</text></g><g><rect x="408" y="470" width="190" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M413,470.65 h180 a4.4,4.4 0 0 1 4.4,4.4 v0 h-188.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="421" y="483" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><rect x="429.5" y="497" width="13" height="9.5" rx="1.8" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M432.2,497 v-3.2 a3.8,3.8 0 0 1 7.6,0 v3.2" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:codeartifact--><!--<image href="../assets/icons/codeartifact.svg" x="423" y="485" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="459" y="503" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">CodeArtifact</text><text x="421" y="529" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">private repository</text><rect x="421" y="537" width="87" height="15" rx="3" fill="var(--c-aws-s)"/><text x="427" y="547.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">12-hour token</text></g><g><rect x="640" y="470" width="160" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M645,470.65 h150 a4.4,4.4 0 0 1 4.4,4.4 v0 h-158.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="653" y="483" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><circle cx="668" cy="498" r="8.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="668" cy="498" rx="3.6" ry="8.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="659.5" y1="498" x2="676.5" y2="498" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:maven--><!--<image href="../assets/icons/maven.svg" x="655" y="485" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="691" y="503" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Maven Central</text><text x="653" y="529" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">upstream</text><rect x="653" y="537" width="81" height="15" rx="3" fill="var(--c-neu-s)"/><text x="659" y="547.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">fetched once</text></g><line x1="152" y1="154" x2="188" y2="154" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><line x1="352" y1="154" x2="404" y2="154" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><line x1="503" y1="198" x2="503" y2="286" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><line x1="503" y1="378" x2="503" y2="466" stroke="var(--c-aws)" stroke-width="1.4" marker-end="url(#maws)" fill="none"/><line x1="598" y1="514" x2="636" y2="514" stroke="var(--c-aws)" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#maws)" fill="none"/><line x1="598" y1="334" x2="636" y2="334" stroke="var(--c-aws)" stroke-width="1.4" marker-end="url(#maws)" fill="none"/><polyline points="598,154 920,154 920,286" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><line x1="800" y1="334" x2="836" y2="334" stroke="var(--c-aws)" stroke-width="1.4" marker-end="url(#maws)" fill="none"/><line x1="1000" y1="334" x2="1026" y2="334" stroke="var(--c-app)" stroke-width="1.6" marker-end="url(#mreq)" fill="none"/><line x1="1118" y1="198" x2="1118" y2="286" stroke="var(--c-aws)" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#maws)" fill="none"/><circle cx="170" cy="154" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="170" y="157.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">1</text><circle cx="378" cy="154" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="378" y="157.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">2</text><circle cx="503" cy="242" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="503" y="245.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">3</text><circle cx="503" cy="422" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="503" y="425.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">4</text><circle cx="617" cy="514" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="617" y="517.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">5</text><circle cx="617" cy="334" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="617" y="337.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">6</text><circle cx="759" cy="154" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="759" y="157.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">7</text><circle cx="818" cy="334" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="818" y="337.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">8</text><circle cx="1013" cy="334" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="1013" y="337.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">9</text><circle cx="1118" cy="242" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="1118" y="245.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">10</text></svg>
+      </div>
+      <figcaption>The pipeline at the end of day seven. Arrows 3 to 9 are what CodePipeline replaced: on days four and five I ran CodeBuild and CodeDeploy by hand. Arrow 4 is why no build step talks to a public registry directly &mdash; arrow 5 is the only place Maven Central appears.</figcaption>
+    </figure>
+
+    <div class="wiring">
+      <div class="panel">
+        <h4>How the components communicate</h4>
+        <table class="wire">
+          <thead><tr><th>No</th><th>From &rarr; to</th><th>Mechanism</th><th>What happens</th></tr></thead>
+          <tbody>
+          <tr><td>1</td><td class="ft">Developer &rarr; GitHub</td><td class="mech">git push</td><td>A code change to <code>main</code>; GitHub auth used a personal access token.</td></tr>
+          <tr><td>2</td><td class="ft">GitHub &rarr; CodePipeline</td><td class="mech">webhook</td><td>CodeConnections starts a pipeline execution on every push.</td></tr>
+          <tr><td>3</td><td class="ft">CodePipeline &rarr; CodeBuild</td><td class="mech">Build stage</td><td>Hands the zipped source to CodeBuild.</td></tr>
+          <tr><td>4</td><td class="ft">CodeBuild &rarr; CodeArtifact</td><td class="mech">mvn -s settings.xml</td><td>Every dependency comes through CodeArtifact, with a token CodeBuild's role is allowed to request.</td></tr>
+          <tr><td>5</td><td class="ft">CodeArtifact &rarr; Maven Central</td><td class="mech">upstream</td><td>Fetches anything new from Maven Central once, then serves it from cache.</td></tr>
+          <tr><td>6</td><td class="ft">CodeBuild &rarr; S3 artifacts</td><td class="mech">artifacts</td><td>Writes the WAR file plus the scripts and <code>appspec.yml</code> CodeDeploy needs.</td></tr>
+          <tr><td>7</td><td class="ft">CodePipeline &rarr; CodeDeploy</td><td class="mech">Deploy stage</td><td>Starts a deployment with the build artifact; rollback on stage failure is enabled.</td></tr>
+          <tr><td>8</td><td class="ft">S3 artifacts &rarr; CodeDeploy</td><td class="mech">revision</td><td>CodeDeploy fetches the artifact from its S3 revision location.</td></tr>
+          <tr><td>9</td><td class="ft">CodeDeploy &rarr; EC2 web server</td><td class="mech">agent + hooks</td><td>The agent runs install, start and stop scripts on instances tagged <code>role: webserver</code>.</td></tr>
+          <tr><td>10</td><td class="ft">CloudFormation &rarr; EC2 web server</td><td class="mech">stack</td><td>VPC, subnet, routes, internet gateway, security group and the instance itself.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="panel">
+          <h4>Legend</h4>
+          <div class="key">
+            <div><i style="background:var(--c-neu)"></i><span><b>Outside AWS</b>developer, Maven Central</span></div>
+            <div><i style="background:var(--c-ctl)"></i><span><b>Source &amp; orchestration</b>GitHub, CodePipeline</span></div>
+            <div><i style="background:var(--c-aws)"></i><span><b>AWS-managed</b>build, artifacts, deploy, IaC</span></div>
+            <div><i style="background:var(--c-app)"></i><span><b>Running app</b>the web server</span></div>
+            <div><u style="border-color:var(--c-ctl)"></u><span><b>Pipeline stage</b>source to deploy</span></div>
+            <div><u style="border-color:var(--c-aws)"></u><span><b>Service call</b>build, fetch, store</span></div>
+            <div><u style="border-color:var(--c-app)"></u><span><b>Deployment</b>scripts on the instance</span></div>
+            <div><u style="border-color:var(--c-aws); border-top-style:dashed"></u><span><b>Provision / upstream</b>not on the request path</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h4>What was reachable</h4>
+          <p class="surface"><b>Public &mdash;</b> the EC2 web server's DNS name, serving the Java app over HTTP.<br>
+          <b>Private &mdash;</b> CodeArtifact, the S3 artifact bucket, and the pipeline's roles.<br>
+          <b>Inbound &mdash;</b> GitHub's webhook into CodePipeline.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What I verified, and how</h2>
+      <p class="h2note">Evidence, separated from design intent</p>
+      <p>Building something and being able to prove it works are different claims, so I've kept them separate below. <strong>Measured</strong> means I created the condition myself and recorded what happened. <strong>Observed</strong> means I looked at the pipeline and the AWS console and saw the state it was already in. <strong>By design</strong> means the configuration guarantees it, but I didn't run a test against it &mdash; better to say that plainly than dress it up as a result.</p>
+    </div>
+
+    <div class="ledger">
+
+      <div class="v-row measured">
+        <div class="v-tag">Measured</div>
+        <div>
+          <h3>A push went from GitHub to the live page with no manual step</h3>
+          <p>I changed the app's source and pushed to <code>main</code>. The webhook started a new execution, Source, Build and Deploy all went green, each stage showing the same commit message, and the new line was on the live page when I reloaded it.</p>
+          <p class="v-method"><b>Method</b> Pushed a visible change, watched the execution in CodePipeline, then loaded the web server's public DNS name.</p>
+        </div>
+      </div>
+      <div class="v-row measured">
+        <div class="v-tag">Measured</div>
+        <div>
+          <h3>Rolling back the Deploy stage restored the previous page and left Source and Build alone</h3>
+          <p>I started a rollback on the Deploy stage. Afterwards Source and Build still showed the latest commit while Deploy showed the previous one, and the live app was back to its earlier text.</p>
+          <p class="v-method"><b>Method</b> Compared each stage's commit message after the rollback, then reloaded the live page.</p>
+        </div>
+      </div>
+      <div class="v-row measured">
+        <div class="v-tag">Measured</div>
+        <div>
+          <h3>A deliberately broken stop script took the automatic rollback down with it</h3>
+          <p>On day five I put <code>systemctll</code> in <code>stop_server.sh</code> with rollbacks enabled. The deployment failed with <code>systemctll: command not found</code> &mdash; and so did the automatic rollback, because rolling back starts by running the same broken stop script. Recovery meant fixing the script and deploying a new revision myself.</p>
+          <p class="v-method"><b>Method</b> Deployed the broken script and read the deployment history: the failed deployment and the failed rollback.</p>
+        </div>
+      </div>
+      <div class="v-row observed">
+        <div class="v-tag">Observed</div>
+        <div>
+          <h3>The whole stack came up from one CloudFormation template</h3>
+          <p>After two failed attempts (below), the <code>nextwork-devops-stack</code> stack showed all 16 resources &mdash; CodeArtifact domain and repositories, CodeBuild project, CodeDeploy application and deployment group, the GitHub connection, roles and policies &mdash; at <code>CREATE_COMPLETE</code>.</p>
+          <p class="v-method"><b>Method</b> Read the stack's Resources tab.</p>
+        </div>
+      </div>
+      <div class="v-row design">
+        <div class="v-tag">By design</div>
+        <div>
+          <h3>Builds never fetch directly from a public registry</h3>
+          <p><code>settings.xml</code> points Maven at CodeArtifact, and CodeArtifact is the one that reaches Maven Central. I didn't block outbound traffic from CodeBuild to prove nothing else is contacted.</p>
+          <p class="v-method"><b>Method</b> Reviewed <code>settings.xml</code> and the CodeArtifact upstream configuration.</p>
+        </div>
+      </div>
+
+    </div>
+    <p class="legend">Five claims. three measured, one observed, one stated as a design property rather than dressed up as a result.</p>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Proof</h2>
+      <p class="h2note">From the pipeline and the AWS console</p>
+    </div>
+    <div class="shots">
+      <figure>
+        <img loading="lazy" alt="CodeBuild phase details with BUILD and POST_BUILD failed on COMMAND_EXECUTION_ERROR for mvn -s settings.xml" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/ci-cd/aws-devops-cicd-challenge/Day%204-%20Continuous%20Integration%20with%20CodeBuild/Screenshots/Screenshot%20from%202025-12-03%2010-22-26.png">
+        <figcaption>Day four: <code>COMMAND_EXECUTION_ERROR</code> &mdash; CodeBuild couldn't reach CodeArtifact.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="CloudFormation template upload error: Circular dependency between IAM managed policies and roles" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/ci-cd/aws-devops-cicd-challenge/Day%206-Infrastructure%20as%20Code%20with%20CloudFormation/Screenshots/Screenshot%20from%202025-12-31%2005-42-39.png">
+        <figcaption>Day six: the circular dependency between roles and policies.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="CloudFormation nextwork-devops-stack resources all CREATE_COMPLETE" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/ci-cd/aws-devops-cicd-challenge/Day%206-Infrastructure%20as%20Code%20with%20CloudFormation/Screenshots/Screenshot%20from%202025-12-31%2009-51-23.png">
+        <figcaption>The stack's resources at <code>CREATE_COMPLETE</code>.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="CodeDeploy deployment history with failed and succeeded in-place deployments" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/ci-cd/aws-devops-cicd-challenge/Day%205-Deploy%20a%20Web%20App%20with%20CodeDeploy/Screenshots/Screenshot%20from%202025-12-16%2021-33-05.png">
+        <figcaption>Day five's deployment history, including the broken-script failures.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="CodePipeline execution with Source, Build and Deploy all succeeded" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/ci-cd/aws-devops-cicd-challenge/Day%207-%20Build%20a%20CI_CD%20Pipeline%20with%20AWS/Screenshots/Screenshot%20from%202026-01-03%2005-28-33.png">
+        <figcaption>Day seven: Source, Build and Deploy all green.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="CodePipeline Deploy stage marked Rollback with all actions succeeded" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/ci-cd/aws-devops-cicd-challenge/Day%207-%20Build%20a%20CI_CD%20Pipeline%20with%20AWS/Screenshots/Screenshot%20from%202026-01-03%2007-57-15.png">
+        <figcaption>The Deploy stage after a rollback.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What actually broke</h2>
+      <p class="h2note">Three failures worth keeping</p>
+      <div class="broke">
+        <article>
+          <h3>Two failed builds before CodeBuild produced anything</h3>
+          <p>The first build failed because there was no <code>buildspec.yml</code> &mdash; CodeBuild had no instructions at all. The second failed with <code>COMMAND_EXECUTION_ERROR</code>: CodeBuild had the <code>settings.xml</code> pointing at CodeArtifact but no permission to use it, so Maven couldn't resolve a single dependency. Adding an IAM policy for CodeArtifact to CodeBuild's role turned the third build green. Day three had the same shape: the EC2 instance couldn't get a CodeArtifact token until I gave it a role that could.</p>
+        </article>
+        <article>
+          <h3>CloudFormation failed on ordering, then on a circular dependency</h3>
+          <p>My first stack failed because roles and their policies were being created at the same time; a policy needs its role first. I added <code>DependsOn</code>. The second attempt failed with <code>Circular dependency between resources</code>: the roles listed the policies in <code>ManagedPolicyArns</code> while the policies depended on the roles. Removing those references from the roles let CloudFormation create each role, then attach its policies.</p>
+        </article>
+        <article>
+          <h3>A rollback can't save you from the script it has to run</h3>
+          <p>With the typo in <code>stop_server.sh</code>, the deployment failed and the automatic rollback failed for the same reason &mdash; it begins by stopping the server with the broken script. The lesson I took from it: rollback protects you from a bad application build, not from broken deployment plumbing.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Source</h2>
+      <p class="h2note">Everything on this page came from here</p>
+      <div class="src">
+        <p>The Java web app, <code>buildspec.yml</code>, <code>appspec.yml</code>, the CodeDeploy lifecycle scripts and the CloudFormation templates live here: <a href="https://github.com/kingswanzy2020/nextwork-web-project">kingswanzy2020/nextwork-web-project</a>. The day-by-day log is in <a href="https://github.com/kingswanzy2020/Projects/tree/main/ci-cd/aws-devops-cicd-challenge">Projects/ci-cd/aws-devops-cicd-challenge</a>.</p>
+        <pre>git clone https://github.com/kingswanzy2020/nextwork-web-project.git</pre>
+      </div>
+      <p class="stack"><b>Stack</b><br>AWS CodePipeline &middot; CodeBuild &middot; CodeArtifact &middot; CodeDeploy &middot; CloudFormation &middot; CodeConnections &middot; S3 &middot; EC2 &middot; IAM roles &amp; policies &middot; CloudWatch Logs &middot; Java / Maven &middot; Tomcat &middot; Apache</p>
+    </div>
+  </section>
+
+  <nav class="next" aria-label="More case studies">
+    <a href="../jenkins-sonarqube/"><small>&larr; Previous</small>Jenkins pipeline gated on SonarQube</a>
+    <a class="r" href="../rag-semantic-ci/"><small>Next &rarr;</small>Semantic tests for a RAG API in GitHub Actions</a>
+  </nav>
+
+  <footer class="col">
+    Ahmed Tetteh &middot; <a href="mailto:kingsleyswanzy@gmail.com">kingsleyswanzy@gmail.com</a> &middot; <a href="https://github.com/kingswanzy2020">github.com/kingswanzy2020</a> &middot; <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a><br>
+    Static HTML and CSS. No JavaScript, no framework, no build step for the page itself.
+  </footer>
+
+</div>
+</body>
+</html>

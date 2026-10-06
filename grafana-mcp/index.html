@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Case study: an e-commerce analytics dashboard over PostgreSQL, built and updated in natural language through an AI agent that drives Grafana&#x27;s API via the Model Context Protocol.">
+<title>Grafana Dashboards via MCP</title>
+<meta name="theme-color" content="#0b1220">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@500;600&display=swap">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body class="case">
+<div class="bar">
+  <div class="wrap">
+    <a class="brand" href="../"><span class="avatar sm" aria-hidden="true">AT</span><b>Ahmed Tetteh</b><small>DevOps &middot; Platform &middot; SRE</small></a>
+    <nav>
+      <a class="back" href="../#work">&larr; All case studies</a>
+      <a href="https://github.com/kingswanzy2020">GitHub</a>
+      <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a>
+      <a href="mailto:kingsleyswanzy@gmail.com">Email</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div class="col">
+      <p class="eyebrow">Case study &mdash; Observability / AI</p>
+      <h1>Grafana dashboards built and updated through MCP</h1>
+      <p class="standfirst">I connected an AI agent in Cursor to Grafana and PostgreSQL through MCP servers, then built a six-panel e-commerce dashboard by describing it &mdash; and changed the data underneath to watch the panels re-rank live.</p>
+
+      <div class="status">
+        <span class="chip">Local stack</span>
+        <p>Grafana and PostgreSQL ran in Docker on my machine, driven from Cursor. Nothing was hosted. The schema and seed data in the repo reproduce the database; everything below describes that local session.</p>
+      </div>
+    </div>
+
+    <dl class="spec">
+      <div><dt>Dashboards</dt><dd>Grafana, 6 panels</dd></div>
+      <div><dt>Data</dt><dd>PostgreSQL, database demo</dd></div>
+      <div><dt>Agent</dt><dd>Cursor</dd></div>
+      <div><dt>Bridge</dt><dd>Grafana + Postgres MCP servers</dd></div>
+      <div><dt>Auth</dt><dd>Grafana service-account token</dd></div>
+      <div><dt>Pattern</dt><dd>raw vs pre-aggregated tables</dd></div>
+    </dl>
+  </header>
+
+  <section>
+    <div class="col">
+      <h2>What it does</h2>
+      <p class="h2note">Summary</p>
+      <p>Cursor's <code>mcp.json</code> defines a Grafana MCP server (stdio transport, the Grafana URL and a service-account token) alongside Docker and PostgreSQL servers, which gives the agent hands on each tool. I added PostgreSQL as a Grafana data source at <code>host.docker.internal:5432</code>, then asked for a dashboard: four KPI tiles &mdash; total revenue, order count, average order value, customers &mdash; bars for orders by status and revenue by region, and a monthly revenue trend. A second dashboard put a panel over the raw customer table next to panels over a pre-aggregated table, and I changed the data to watch them update.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>How it is wired</h2>
+      <p class="h2note">The mechanism</p>
+      <p><strong>Why MCP instead of clicking through Grafana?</strong> Without it, a dashboard means logging in, writing SQL per panel and fiddling with visualisation settings &mdash; enough friction that dashboards don't get built. The MCP server turns a described panel into Grafana API calls, authenticated with a service-account token rather than my login.</p>
+      <p><strong>Why pre-aggregated tables?</strong> A panel over the raw table re-scans every customer row on every refresh, which gets slower as data grows. Panels over a materialised, dbt-style aggregate read a handful of pre-computed rows. Putting both side by side made the trade-off visible.</p>
+      <p><strong>Why <code>host.docker.internal</code>?</strong> Grafana runs in a container; PostgreSQL was published on the host. That name resolves to the host from inside the container.</p>
+    </div>
+
+    <figure class="fig">
+      <div class="fig-scroll">
+<svg viewBox="0 0 1244 500" role="img" aria-label="I describe dashboards to the agent in Cursor, which calls the Grafana MCP server over stdio. The MCP server uses a service-account token to call Grafana&#x27;s API and create panels. Grafana queries PostgreSQL through a data source. The agent also updates data through a PostgreSQL MCP server, and the panels refresh."><defs><marker id="mreq" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-app)"/></marker><marker id="mdata" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--dg-line)"/></marker><marker id="mctl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-ctl)"/></marker><marker id="mobs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-obs)"/></marker><marker id="maws" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-aws)"/></marker><marker id="mneu" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-neu)"/></marker></defs><rect x="176" y="60" width="1052" height="410" rx="8" fill="none" stroke="var(--c-neu)" stroke-width="1.2" stroke-dasharray="6 5" opacity=".8"/><text x="194" y="53" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="10.5" letter-spacing="1.3" fill="var(--c-neu)">MY MACHINE — CURSOR · DOCKER</text><g><rect x="16" y="200" width="136" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M21,200.65 h126 a4.4,4.4 0 0 1 4.4,4.4 v0 h-134.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="29" y="213" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><circle cx="44" cy="224" r="3.6" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M36.5,236 a7.5,6.5 0 0 1 15,0" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:engineer--><!--<image href="../assets/icons/engineer.svg" x="31" y="215" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="67" y="233" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Me</text><text x="29" y="259" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">plain language</text><rect x="29" y="267" width="52" height="15" rx="3" fill="var(--c-neu-s)"/><text x="35" y="277.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">prompts</text></g><g><rect x="210" y="200" width="180" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-ctl)" stroke-width="1.3"/><path d="M215,200.65 h170 a4.4,4.4 0 0 1 4.4,4.4 v0 h-178.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-ctl)"/><rect x="223" y="213" width="30" height="30" rx="6" fill="var(--c-ctl-s)"/><path d="M230,222 h16 v10 h-9 l-4,3.5 v-3.5 h-3 z" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="234" y1="226" x2="242" y2="226" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="234" y1="229" x2="239" y2="229" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:ai--><!--<image href="../assets/icons/ai.svg" x="225" y="215" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="261" y="233" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Cursor agent</text><text x="223" y="259" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">mcp.json</text><rect x="223" y="267" width="87" height="15" rx="3" fill="var(--c-ctl-s)"/><text x="229" y="277.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-ctl)">3 MCP servers</text></g><g><rect x="450" y="100" width="200" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-ctl)" stroke-width="1.3"/><path d="M455,100.65 h190 a4.4,4.4 0 0 1 4.4,4.4 v0 h-198.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-ctl)"/><rect x="463" y="113" width="30" height="30" rx="6" fill="var(--c-ctl-s)"/><circle cx="478" cy="128" r="4" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="478" cy="128" r="8" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2.6 2.6"/><!--ICON:mcp--><!--<image href="../assets/icons/mcp.svg" x="465" y="115" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="501" y="133" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Grafana MCP</text><text x="463" y="159" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">stdio · service token</text><rect x="463" y="167" width="58" height="15" rx="3" fill="var(--c-ctl-s)"/><text x="469" y="177.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-ctl)">50 tools</text></g><g><rect x="450" y="330" width="200" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-ctl)" stroke-width="1.3"/><path d="M455,330.65 h190 a4.4,4.4 0 0 1 4.4,4.4 v0 h-198.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-ctl)"/><rect x="463" y="343" width="30" height="30" rx="6" fill="var(--c-ctl-s)"/><circle cx="478" cy="358" r="4" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="478" cy="358" r="8" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2.6 2.6"/><!--ICON:mcp--><!--<image href="../assets/icons/mcp.svg" x="465" y="345" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="501" y="363" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Postgres MCP</text><text x="463" y="389" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">queries + updates</text><rect x="463" y="397" width="52" height="15" rx="3" fill="var(--c-ctl-s)"/><text x="469" y="407.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-ctl)">9 tools</text></g><g><rect x="720" y="100" width="200" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-obs)" stroke-width="1.3"/><path d="M725,100.65 h190 a4.4,4.4 0 0 1 4.4,4.4 v0 h-198.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-obs)"/><rect x="733" y="113" width="30" height="30" rx="6" fill="var(--c-obs-s)"/><line x1="742" y1="135" x2="742" y2="130" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="747" y1="135" x2="747" y2="126" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="752" y1="135" x2="752" y2="122" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="739" y1="136.5" x2="757" y2="136.5" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:grafana--><!--<image href="../assets/icons/grafana.svg" x="735" y="115" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="771" y="133" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Grafana</text><text x="733" y="159" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">E-Commerce Analytics</text><rect x="733" y="167" width="58" height="15" rx="3" fill="var(--c-obs-s)"/><text x="739" y="177.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-obs)">6 panels</text></g><g><rect x="720" y="330" width="200" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-app)" stroke-width="1.3"/><path d="M725,330.65 h190 a4.4,4.4 0 0 1 4.4,4.4 v0 h-198.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-app)"/><rect x="733" y="343" width="30" height="30" rx="6" fill="var(--c-app-s)"/><ellipse cx="748" cy="353" rx="7.5" ry="3" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M740.5,353 v10 a7.5,3 0 0 0 15,0 v-10" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M740.5,358 a7.5,3 0 0 0 15,0" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:postgresql--><!--<image href="../assets/icons/postgresql.svg" x="735" y="345" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="771" y="363" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">PostgreSQL</text><text x="733" y="389" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">demo · raw + aggregated</text><rect x="733" y="397" width="127" height="15" rx="3" fill="var(--c-app-s)"/><text x="739" y="407.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-app)">host.docker.internal</text></g><g><rect x="990" y="100" width="200" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-obs)" stroke-width="1.3"/><path d="M995,100.65 h190 a4.4,4.4 0 0 1 4.4,4.4 v0 h-198.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-obs)"/><rect x="1003" y="113" width="30" height="30" rx="6" fill="var(--c-obs-s)"/><polyline points="1010,133 1015,126 1019,130 1026,122" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="1009.5" y1="136" x2="1026.5" y2="136" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:grafana--><!--<image href="../assets/icons/grafana.svg" x="1005" y="115" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="1041" y="133" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Pipeline monitor</text><text x="1003" y="159" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">raw vs aggregated</text><rect x="1003" y="167" width="81" height="15" rx="3" fill="var(--c-obs-s)"/><text x="1009" y="177.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-obs)">live refresh</text></g><line x1="152" y1="244" x2="206" y2="244" stroke="var(--c-neu)" stroke-width="1.4" marker-end="url(#mneu)" fill="none"/><polyline points="390,244 418,244 418,144 446,144" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><line x1="650" y1="144" x2="716" y2="144" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><line x1="820" y1="188" x2="820" y2="326" stroke="var(--dg-line)" stroke-width="1.6" marker-end="url(#mdata)" fill="none"/><polyline points="390,244 418,244 418,374 446,374" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><line x1="650" y1="374" x2="716" y2="374" stroke="var(--dg-line)" stroke-width="1.6" marker-end="url(#mdata)" fill="none"/><line x1="920" y1="144" x2="986" y2="144" stroke="var(--c-obs)" stroke-width="1.4" marker-end="url(#mobs)" fill="none"/><circle cx="179" cy="244" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="179" y="247.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">1</text><circle cx="418" cy="194" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="418" y="197.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">2</text><circle cx="683" cy="144" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="683" y="147.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">3</text><circle cx="820" cy="257" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="820" y="260.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">4</text><circle cx="418" cy="309" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="418" y="312.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">5</text><circle cx="683" cy="374" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="683" y="377.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">6</text><circle cx="953" cy="144" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="953" y="147.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">7</text></svg>
+      </div>
+      <figcaption>The session as it ran. Arrows 2 and 3 replace the part of dashboard-building people skip; arrow 6 is how I tested the result &mdash; by changing the data and watching the panels follow.</figcaption>
+    </figure>
+
+    <div class="wiring">
+      <div class="panel">
+        <h4>How the components communicate</h4>
+        <table class="wire">
+          <thead><tr><th>No</th><th>From &rarr; to</th><th>Mechanism</th><th>What happens</th></tr></thead>
+          <tbody>
+          <tr><td>1</td><td class="ft">Me &rarr; Cursor agent</td><td class="mech">prompt</td><td>"Build a revenue dashboard", in words.</td></tr>
+          <tr><td>2</td><td class="ft">Cursor agent &rarr; Grafana MCP</td><td class="mech">MCP over stdio</td><td>The agent picks Grafana tools to create panels and queries.</td></tr>
+          <tr><td>3</td><td class="ft">Grafana MCP &rarr; Grafana</td><td class="mech">Grafana API</td><td>Creates and updates dashboards with a service-account token.</td></tr>
+          <tr><td>4</td><td class="ft">Grafana &rarr; PostgreSQL</td><td class="mech">SQL data source</td><td>Every panel query; tested with <em>Database Connection OK</em>.</td></tr>
+          <tr><td>5</td><td class="ft">Cursor agent &rarr; Postgres MCP</td><td class="mech">MCP over stdio</td><td>Used to change the raw and aggregated data during the live test.</td></tr>
+          <tr><td>6</td><td class="ft">Postgres MCP &rarr; PostgreSQL</td><td class="mech">UPDATE</td><td>Shifted customer counts so the top country changed.</td></tr>
+          <tr><td>7</td><td class="ft">Grafana &rarr; Pipeline monitor</td><td class="mech">second dashboard</td><td>One panel scans raw rows; two read the pre-aggregated table.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="panel">
+          <h4>Legend</h4>
+          <div class="key">
+            <div><i style="background:var(--c-neu)"></i><span><b>Me</b>plain-language prompts</span></div>
+            <div><i style="background:var(--c-ctl)"></i><span><b>Agent &amp; MCP servers</b>Cursor and its tools</span></div>
+            <div><i style="background:var(--c-obs)"></i><span><b>Dashboards</b>Grafana</span></div>
+            <div><i style="background:var(--c-app)"></i><span><b>Data</b>PostgreSQL</span></div>
+            <div><u style="border-color:var(--c-ctl)"></u><span><b>Tool calls</b>agent to API</span></div>
+            <div><u style="border-color:var(--dg-line)"></u><span><b>SQL</b>queries and updates</span></div>
+            <div><u style="border-color:var(--c-obs)"></u><span><b>Dashboards</b>panels from data</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h4>What was reachable</h4>
+          <p class="surface"><b>Public &mdash;</b> nothing; Grafana and PostgreSQL were local containers.<br>
+          <b>Agent access &mdash;</b> a Grafana service-account token and a PostgreSQL connection, through MCP.<br>
+          <b>Data &mdash;</b> seeded e-commerce demo data, no real customers.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What I verified, and how</h2>
+      <p class="h2note">Evidence, separated from design intent</p>
+      <p>Building something and being able to prove it works are different claims, so I've kept them separate below. <strong>Measured</strong> means I created the condition myself and recorded what happened. <strong>Observed</strong> means I looked at the dashboards and saw the state it was already in. <strong>By design</strong> means the configuration guarantees it, but I didn't run a test against it &mdash; better to say that plainly than dress it up as a result.</p>
+    </div>
+
+    <div class="ledger">
+
+      <div class="v-row measured">
+        <div class="v-tag">Measured</div>
+        <div>
+          <h3>Changing the data re-ranked the panels live</h3>
+          <p>Through the agent I updated the raw and aggregated tables. On refresh, the raw-data panel showed Egypt's count up, the top-country panel switched from Korea to Egypt, and total customers stayed at 2K &mdash; each panel following the table it reads.</p>
+          <p class="v-method"><b>Method</b> Updated the data through the Postgres MCP server and refreshed the pipeline dashboard.</p>
+        </div>
+      </div>
+      <div class="v-row observed">
+        <div class="v-tag">Observed</div>
+        <div>
+          <h3>A six-panel dashboard from a description</h3>
+          <p>The E-Commerce Analytics dashboard came out with total revenue $5.09M, 10,000 orders, $509 average order value and 2,000 customers, plus orders by status, revenue by region, and a monthly revenue trend.</p>
+          <p class="v-method"><b>Method</b> Read the dashboard in Grafana.</p>
+        </div>
+      </div>
+      <div class="v-row observed">
+        <div class="v-tag">Observed</div>
+        <div>
+          <h3>All three MCP servers connected</h3>
+          <p>After a full restart, Cursor listed the Docker, Grafana and PostgreSQL servers with green indicators &mdash; 4, 50 and 9 tools &mdash; and the Grafana data source test reported <em>Database Connection OK</em>.</p>
+          <p class="v-method"><b>Method</b> Checked Cursor's installed MCP servers and Grafana's data source test.</p>
+        </div>
+      </div>
+      <div class="v-row design">
+        <div class="v-tag">By design</div>
+        <div>
+          <h3>Aggregated panels stay fast as data grows &mdash; not timed</h3>
+          <p>The raw panel scans every row per refresh; the aggregated panels read pre-computed rows. On 2,000 customers both felt instant, so I'm stating the scaling property, not a measured difference.</p>
+          <p class="v-method"><b>Method</b> Reviewed the panel queries. No timing captured.</p>
+        </div>
+      </div>
+
+    </div>
+    <p class="legend">Four claims. one measured, two observed, one stated as a design property rather than dressed up as a result.</p>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Proof</h2>
+      <p class="h2note">From the local session</p>
+    </div>
+    <div class="shots">
+      <figure>
+        <img loading="lazy" alt="Cursor installed MCP servers: docker 4 tools, grafana 50 tools, postgres 9 tools, all enabled" src="img/mcp-servers.jpg">
+        <figcaption>The MCP servers Cursor could use.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="Grafana E-Commerce Analytics dashboard: $5.09M revenue, 10000 orders, $509 AOV, 2000 customers, orders by status and revenue by region" src="img/dashboard.jpg">
+        <figcaption>The six-panel dashboard, built from a description.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="Grafana monthly revenue trend time series" src="img/revenue-trend.jpg">
+        <figcaption>The monthly revenue trend.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="Grafana Data Pipeline Monitor: raw customer data by region, top country Egypt, total customers 2K" src="img/pipeline-monitor.jpg">
+        <figcaption>After the data change: Egypt on top.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What actually broke</h2>
+      <p class="h2note">One failure worth keeping</p>
+      <div class="broke">
+        <article>
+          <h3>Wiring the MCP servers was the hard part</h3>
+          <p>The dashboard was quick once the agent could reach Grafana. Getting there &mdash; the stdio transport, the URL, a service-account token, and a full Cursor restart before the servers showed green &mdash; took most of the ninety minutes.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Source</h2>
+      <p class="h2note">Everything on this page came from here</p>
+      <div class="src">
+        <p>The PostgreSQL schema and seed data the dashboards query live here: <a href="https://github.com/kingswanzy2020/mcp-data-series">kingswanzy2020/mcp-data-series</a>.</p>
+        <pre>git clone https://github.com/kingswanzy2020/mcp-data-series.git</pre>
+      </div>
+      <p class="stack"><b>Stack</b><br>Grafana &middot; Model Context Protocol (MCP) &middot; Cursor &middot; PostgreSQL &middot; Docker &middot; stat, bar and time-series panels &middot; materialised aggregation &middot; service-account tokens</p>
+    </div>
+  </section>
+
+  <nav class="next" aria-label="More case studies">
+    <a href="../delivery-scoreboard/"><small>&larr; Previous</small>DORA delivery scoreboard with DuckDB</a>
+    <a class="r" href="../nginx-gateway/"><small>Next &rarr;</small>An NGINX traffic gateway you can watch work</a>
+  </nav>
+
+  <footer class="col">
+    Ahmed Tetteh &middot; <a href="mailto:kingsleyswanzy@gmail.com">kingsleyswanzy@gmail.com</a> &middot; <a href="https://github.com/kingswanzy2020">github.com/kingswanzy2020</a> &middot; <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a><br>
+    Static HTML and CSS. No JavaScript, no framework, no build step for the page itself.
+  </footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Case study: an Aurora MySQL cluster provisioned alongside an EC2 web host, and an Apache/PHP app that writes to it, with every write verified independently through the MySQL CLI.">
+<title>Web App on Amazon Aurora</title>
+<meta name="theme-color" content="#0b1220">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@500;600&display=swap">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body class="case">
+<div class="bar">
+  <div class="wrap">
+    <a class="brand" href="../"><span class="avatar sm" aria-hidden="true">AT</span><b>Ahmed Tetteh</b><small>DevOps &middot; Platform &middot; SRE</small></a>
+    <nav>
+      <a class="back" href="../#work">&larr; All case studies</a>
+      <a href="https://github.com/kingswanzy2020">GitHub</a>
+      <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a>
+      <a href="mailto:kingsleyswanzy@gmail.com">Email</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div class="col">
+      <p class="eyebrow">Case study &mdash; AWS / Databases</p>
+      <h1>A PHP web app on EC2 writing to Amazon Aurora</h1>
+      <p class="standfirst">I provisioned an Aurora MySQL cluster together with the EC2 instance that talks to it, put an Apache and PHP app on the instance that writes form input to the database, and checked every write a second time from the MySQL command line.</p>
+
+      <div class="status">
+        <span class="chip">Guided lab</span>
+        <p>I built this in my own AWS account as a guided NextWork lab. I'm not pointing you at a live endpoint &mdash; the screenshots below were captured during the build, and the cluster settings and the PHP page rebuild it. This page covers both parts of the lab: the database and its host, then the app. Everything below is in the past tense for that reason.</p>
+      </div>
+    </div>
+
+    <dl class="spec">
+      <div><dt>Database</dt><dd>Aurora MySQL 3.10 (MySQL 8.0)</dd></div>
+      <div><dt>Template</dt><dd>Dev/Test</dd></div>
+      <div><dt>Host</dt><dd>EC2 t3.micro, Amazon Linux 2023</dd></div>
+      <div><dt>Stack</dt><dd>Apache · PHP · php-mysqli</dd></div>
+      <div><dt>Networking</dt><dd>RDS "connect to EC2" security groups</dd></div>
+      <div><dt>Verified</dt><dd>MySQL CLI (mariadb105)</dd></div>
+    </dl>
+  </header>
+
+  <section>
+    <div class="col">
+      <h2>What it does</h2>
+      <p class="h2note">Summary</p>
+      <p>I started creating an Aurora cluster, stopped halfway to launch the EC2 instance it would serve &mdash; with a new key pair, a public IP and its own security group &mdash; and then finished the cluster with <em>Connect to an EC2 compute resource</em> pointed at that instance. On the instance I installed Apache, PHP, <code>php-mysqli</code> and the <code>mariadb105</code> client, put the connection details in <code>dbinfo.inc</code>, and wrote a sample PHP page that inserts a name and address and lists every row. Then I logged into the database with the MySQL CLI and checked the tables and rows directly.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>How it is wired</h2>
+      <p class="h2note">The mechanism</p>
+      <p><strong>Why stop halfway through creating the database?</strong> The cluster's connectivity settings want a compute resource to connect to. Launching the instance first meant I could pick it, and RDS added a security group to each side with an inbound rule letting that instance &mdash; and only that instance &mdash; reach the database.</p>
+      <p><strong>Why Aurora rather than MySQL on the instance?</strong> Running MySQL on the VM means owning patching, replication, failover and backups. Aurora keeps MySQL compatibility and hands those to AWS; a cluster has a writer and can add readers that spread <code>SELECT</code> load. This build used the Dev/Test template, so I'm describing the topology Aurora offers, not a replica I load-tested.</p>
+      <p><strong>Why check the data with the CLI when the page already shows it?</strong> The page displaying a row only proves the page and the database agree with each other. Logging in with the MySQL client and running <code>SHOW DATABASES</code>, <code>USE sample</code> and <code>SHOW TABLES</code> checks the data where it actually lives.</p>
+      <p><strong>Why <code>dbinfo.inc</code>?</strong> It keeps the endpoint, user and password out of the page code. It doesn't make them secret &mdash; it's still a plaintext file on the instance. Secrets Manager would be the next step; this lab stops at separation.</p>
+    </div>
+
+    <figure class="fig">
+      <div class="fig-scroll">
+<svg viewBox="0 0 1244 520" role="img" aria-label="A browser posts a form to Apache and PHP on an EC2 instance. PHP reads connection details from dbinfo.inc and inserts the row into the Aurora MySQL cluster through php-mysqli. Security groups created by RDS&#x27;s connect-to-EC2 option allow only that instance to reach the database. I connect over SSH with the key pair and query the same database with the MySQL CLI."><defs><marker id="mreq" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-app)"/></marker><marker id="mdata" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--dg-line)"/></marker><marker id="mctl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-ctl)"/></marker><marker id="mobs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-obs)"/></marker><marker id="maws" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-aws)"/></marker><marker id="mneu" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-neu)"/></marker></defs><rect x="176" y="60" width="1052" height="430" rx="8" fill="none" stroke="var(--c-aws)" stroke-width="1.2" stroke-dasharray="6 5" opacity=".8"/><text x="194" y="53" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="10.5" letter-spacing="1.3" fill="var(--c-aws)">AWS ACCOUNT — EC2 · AURORA (RDS) · SECURITY GROUPS</text><rect x="196" y="90" width="520" height="380" rx="8" fill="none" stroke="var(--c-app)" stroke-width="1.1" stroke-dasharray="3 4" opacity=".8"/><text x="214" y="83" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="10" letter-spacing="1.3" fill="var(--c-app)">EC2 WEB HOST — t3.micro · AMAZON LINUX 2023</text><g><rect x="16" y="130" width="136" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M21,130.65 h126 a4.4,4.4 0 0 1 4.4,4.4 v0 h-134.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="29" y="143" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><rect x="35" y="151" width="18" height="14" rx="2" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="35" y1="155.5" x2="53" y2="155.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="38" cy="153.3" r="0.9" fill="var(--c-neu)"/><!--ICON:browser--><!--<image href="../assets/icons/browser.svg" x="31" y="145" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="67" y="163" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Browser</text><text x="29" y="189" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">sample page</text><rect x="29" y="197" width="64" height="15" rx="3" fill="var(--c-neu-s)"/><text x="35" y="207.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">form POST</text></g><g><rect x="16" y="330" width="136" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M21,330.65 h126 a4.4,4.4 0 0 1 4.4,4.4 v0 h-134.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="29" y="343" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><circle cx="44" cy="354" r="3.6" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M36.5,366 a7.5,6.5 0 0 1 15,0" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:engineer--><!--<image href="../assets/icons/engineer.svg" x="31" y="345" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="67" y="363" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Me</text><text x="29" y="389" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">key pair, chmod 400</text><rect x="29" y="397" width="29" height="15" rx="3" fill="var(--c-neu-s)"/><text x="35" y="407.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">SSH</text></g><g><rect x="226" y="130" width="210" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-app)" stroke-width="1.3"/><path d="M231,130.65 h200 a4.4,4.4 0 0 1 4.4,4.4 v0 h-208.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-app)"/><rect x="239" y="143" width="30" height="30" rx="6" fill="var(--c-app-s)"/><polyline points="251,152 246,158 251,164" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="257,152 262,158 257,164" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="255" y1="151" x2="253" y2="165" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:php--><!--<image href="../assets/icons/php.svg" x="241" y="145" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="277" y="163" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Apache + PHP</text><text x="239" y="189" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">php-mysqli</text><rect x="239" y="197" width="127" height="15" rx="3" fill="var(--c-app-s)"/><text x="245" y="207.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-app)">inserts + lists rows</text></g><g><rect x="486" y="130" width="200" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M491,130.65 h190 a4.4,4.4 0 0 1 4.4,4.4 v0 h-198.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="499" y="143" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><path d="M508,150 h8 l5,5 v11 h-13 z" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="516,150 516,155 521,155" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="511" y1="159" x2="518" y2="159" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="511" y1="162.5" x2="518" y2="162.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:doc--><!--<image href="../assets/icons/doc.svg" x="501" y="145" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="537" y="163" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">dbinfo.inc</text><text x="499" y="189" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">endpoint · user · db</text><rect x="499" y="197" width="110" height="15" rx="3" fill="var(--c-neu-s)"/><text x="505" y="207.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">outside page code</text></g><g><rect x="226" y="330" width="210" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M231,330.65 h200 a4.4,4.4 0 0 1 4.4,4.4 v0 h-208.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="239" y="343" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><rect x="245" y="351" width="18" height="14" rx="2" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="248.5,355.5 251.5,358 248.5,360.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="253.5" y1="361" x2="258.5" y2="361" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:mysql--><!--<image href="../assets/icons/mysql.svg" x="241" y="345" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="277" y="363" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">MySQL CLI</text><text x="239" y="389" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">mariadb105 client</text><rect x="239" y="397" width="110" height="15" rx="3" fill="var(--c-neu-s)"/><text x="245" y="407.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">independent check</text></g><g><rect x="800" y="130" width="230" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-app)" stroke-width="1.3"/><path d="M805,130.65 h220 a4.4,4.4 0 0 1 4.4,4.4 v0 h-228.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-app)"/><rect x="813" y="143" width="30" height="30" rx="6" fill="var(--c-app-s)"/><ellipse cx="828" cy="153" rx="7.5" ry="3" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M820.5,153 v10 a7.5,3 0 0 0 15,0 v-10" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M820.5,158 a7.5,3 0 0 0 15,0" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:aurora--><!--<image href="../assets/icons/aurora.svg" x="815" y="145" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="851" y="163" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Aurora MySQL</text><text x="813" y="189" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">3.10 · Dev/Test</text><rect x="813" y="197" width="98" height="15" rx="3" fill="var(--c-app-s)"/><text x="819" y="207.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-app)">database sample</text></g><g><rect x="800" y="330" width="230" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M805,330.65 h220 a4.4,4.4 0 0 1 4.4,4.4 v0 h-228.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="813" y="343" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><path d="M828,349.5 l7,3 v5 c0,5 -3.5,8 -7,9.5 c-3.5,-1.5 -7,-4.5 -7,-9.5 v-5 z" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="825,358.5 827.5,361 831.5,356" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:vpc--><!--<image href="../assets/icons/vpc.svg" x="815" y="345" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="851" y="363" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Security groups</text><text x="813" y="389" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">added by connect-to-EC2</text><rect x="813" y="397" width="116" height="15" rx="3" fill="var(--c-aws-s)"/><text x="819" y="407.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">this instance only</text></g><line x1="152" y1="174" x2="222" y2="174" stroke="var(--c-app)" stroke-width="1.6" marker-end="url(#mreq)" fill="none"/><line x1="486" y1="174" x2="440" y2="174" stroke="var(--c-neu)" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#mneu)" fill="none"/><polyline points="331,130 331,112 915,112 915,126" stroke="var(--dg-line)" stroke-width="1.6" marker-end="url(#mdata)" fill="none"/><line x1="152" y1="374" x2="222" y2="374" stroke="var(--c-neu)" stroke-width="1.4" marker-end="url(#mneu)" fill="none"/><polyline points="436,374 758,374 758,186 796,186" stroke="var(--dg-line)" stroke-width="1.6" marker-end="url(#mdata)" fill="none"/><polyline points="1030,374 1080,374 1080,174 1034,174" stroke="var(--c-aws)" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#maws)" fill="none"/><circle cx="187" cy="174" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="187" y="177.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">1</text><circle cx="463" cy="174" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="463" y="177.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">2</text><circle cx="623" cy="112" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="623" y="115.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">3</text><circle cx="187" cy="374" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="187" y="377.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">4</text><circle cx="597" cy="374" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="597" y="377.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">5</text><circle cx="1080" cy="274" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="1080" y="277.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">6</text></svg>
+      </div>
+      <figcaption>Both halves of the lab. Arrow 3 is the app's view of the data; arrow 5 is mine, through a different client. When they agree, the write really happened.</figcaption>
+    </figure>
+
+    <div class="wiring">
+      <div class="panel">
+        <h4>How the components communicate</h4>
+        <table class="wire">
+          <thead><tr><th>No</th><th>From &rarr; to</th><th>Mechanism</th><th>What happens</th></tr></thead>
+          <tbody>
+          <tr><td>1</td><td class="ft">Browser &rarr; Apache + PHP</td><td class="mech">HTTP POST</td><td>Name and address from the form.</td></tr>
+          <tr><td>2</td><td class="ft">dbinfo.inc &rarr; Apache + PHP</td><td class="mech">include</td><td>Connection details, kept out of the page source.</td></tr>
+          <tr><td>3</td><td class="ft">Apache + PHP &rarr; Aurora MySQL</td><td class="mech">mysqli INSERT</td><td>Writes the row, then reads every row back for the page.</td></tr>
+          <tr><td>4</td><td class="ft">Me &rarr; MySQL CLI</td><td class="mech">SSH</td><td><code>ssh -i</code> with the key locked to owner-read-only.</td></tr>
+          <tr><td>5</td><td class="ft">MySQL CLI &rarr; Aurora MySQL</td><td class="mech">SQL</td><td><code>SHOW DATABASES</code>, <code>USE sample</code>, <code>SHOW TABLES</code>, then the rows.</td></tr>
+          <tr><td>6</td><td class="ft">Security groups &rarr; Aurora MySQL</td><td class="mech">inbound rule</td><td>Allows the database port from the instance's security group, nothing else.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="panel">
+          <h4>Legend</h4>
+          <div class="key">
+            <div><i style="background:var(--c-neu)"></i><span><b>People, config &amp; tools</b>browser, me, dbinfo.inc, the CLI</span></div>
+            <div><i style="background:var(--c-app)"></i><span><b>App &amp; database</b>PHP and Aurora</span></div>
+            <div><i style="background:var(--c-aws)"></i><span><b>Network control</b>the security groups</span></div>
+            <div><u style="border-color:var(--c-app)"></u><span><b>Request</b>browser to PHP</span></div>
+            <div><u style="border-color:var(--dg-line)"></u><span><b>SQL</b>app and CLI to Aurora</span></div>
+            <div><u style="border-color:var(--c-aws); border-top-style:dashed"></u><span><b>Access rule</b>only this instance</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h4>What was reachable</h4>
+          <p class="surface"><b>Public &mdash;</b> the EC2 instance over HTTP, and SSH with the key pair.<br>
+          <b>Private &mdash;</b> the Aurora cluster, reachable only from the instance's security group.<br>
+          <b>Caveat &mdash;</b> the database password sits in <code>dbinfo.inc</code> on the instance, in plaintext.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What I verified, and how</h2>
+      <p class="h2note">Evidence, separated from design intent</p>
+      <p>Building something and being able to prove it works are different claims, so I've kept them separate below. <strong>Measured</strong> means I created the condition myself and recorded what happened. <strong>Observed</strong> means I looked at the page and the database and saw the state it was already in. <strong>By design</strong> means the configuration guarantees it, but I didn't run a test against it &mdash; better to say that plainly than dress it up as a result.</p>
+    </div>
+
+    <div class="ledger">
+
+      <div class="v-row measured">
+        <div class="v-tag">Measured</div>
+        <div>
+          <h3>Rows written by the page showed up in the database</h3>
+          <p>I added entries through the form; the page listed them with IDs 1 to 3. Logged in with the MySQL CLI, the <code>sample</code> database was there with an <code>EMPLOYEES</code> table holding the same rows.</p>
+          <p class="v-method"><b>Method</b> Submitted the form, then <code>SHOW DATABASES</code>, <code>USE sample</code>, <code>SHOW TABLES</code> and a query in the CLI.</p>
+        </div>
+      </div>
+      <div class="v-row observed">
+        <div class="v-tag">Observed</div>
+        <div>
+          <h3>SSH only worked once the key was owner-read-only</h3>
+          <p><code>ssh -i</code> with the new key pair connected after I removed all permissions for group and others on the key file.</p>
+          <p class="v-method"><b>Method</b> Connected from my terminal to the instance's public address.</p>
+        </div>
+      </div>
+      <div class="v-row observed">
+        <div class="v-tag">Observed</div>
+        <div>
+          <h3>RDS wired the two security groups itself</h3>
+          <p>Choosing <em>Connect to an EC2 compute resource</em> and picking the instance made RDS add a security group to the instance and one to the database, with an inbound rule allowing the instance.</p>
+          <p class="v-method"><b>Method</b> Read the connectivity settings during database creation.</p>
+        </div>
+      </div>
+      <div class="v-row design">
+        <div class="v-tag">By design</div>
+        <div>
+          <h3>Nothing else can reach the database</h3>
+          <p>The database's inbound rule names the instance's security group. I didn't try connecting from anywhere else.</p>
+          <p class="v-method"><b>Method</b> Reviewed the security group rules. Not adversarially tested.</p>
+        </div>
+      </div>
+
+    </div>
+    <p class="legend">Four claims. one measured, two observed, one stated as a design property rather than dressed up as a result.</p>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Proof</h2>
+      <p class="h2note">Captured during the build</p>
+    </div>
+    <div class="shots">
+      <figure>
+        <img loading="lazy" alt="RDS create database: full configuration, Aurora (MySQL Compatible), Aurora MySQL 3.10.3 compatible with MySQL 8.0.42, Dev/Test template" src="img/aurora-engine.jpg">
+        <figcaption>Aurora MySQL 3.10, Dev/Test template.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="RDS connectivity: Connect to an EC2 compute resource, with the web server instance selected" src="img/connect-ec2.jpg">
+        <figcaption><em>Connect to an EC2 compute resource</em>, pointed at the web host.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="Sample PHP page with name and address fields and a table of three stored rows" src="img/sample-page.jpg">
+        <figcaption>The PHP page listing rows it wrote.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="MySQL CLI: SHOW DATABASES listing sample, USE sample, SHOW TABLES listing EMPLOYEES" src="img/mysql-cli.jpg">
+        <figcaption>The same data from the MySQL CLI.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What actually broke</h2>
+      <p class="h2note">One failure worth keeping</p>
+      <div class="broke">
+        <article>
+          <h3>The database wanted a server that didn't exist yet</h3>
+          <p>Halfway through creating the cluster, the connectivity step needed an EC2 instance to connect to. I stopped, launched the instance with its own key pair and security group, and came back. In hindsight it's the right order anyway: the database exists to serve something.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Source</h2>
+      <p class="h2note">Everything on this page came from here</p>
+      <div class="src">
+        <p>This was a guided lab with no standalone repo; the write-ups for <a href="https://github.com/kingswanzy2020/Projects/tree/main/aws/aurora-database-ec2">the cluster</a> and <a href="https://github.com/kingswanzy2020/Projects/tree/main/aws/aurora-web-app">the app</a> live in my portfolio repo.</p>
+        <pre>sudo dnf install -y httpd php php-mysqli mariadb105
+mysql -h &lt;cluster-endpoint&gt; -u admin -p
+SHOW DATABASES; USE sample; SHOW TABLES;</pre>
+      </div>
+      <p class="stack"><b>Stack</b><br>Amazon Aurora (MySQL) &middot; RDS cluster topology &middot; EC2 &middot; SSH key pairs &middot; security groups &middot; Apache &middot; PHP + mysqli &middot; MariaDB client &middot; SQL verification</p>
+    </div>
+  </section>
+
+  <nav class="next" aria-label="More case studies">
+    <a href="../elastic-beanstalk-docker/"><small>&larr; Previous</small>A Docker app on Elastic Beanstalk</a>
+    <a class="r" href="../s3-static-website/"><small>Next &rarr;</small>A static website on S3, access model and all</a>
+  </nav>
+
+  <footer class="col">
+    Ahmed Tetteh &middot; <a href="mailto:kingsleyswanzy@gmail.com">kingsleyswanzy@gmail.com</a> &middot; <a href="https://github.com/kingswanzy2020">github.com/kingswanzy2020</a> &middot; <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a><br>
+    Static HTML and CSS. No JavaScript, no framework, no build step for the page itself.
+  </footer>
+
+</div>
+</body>
+</html>

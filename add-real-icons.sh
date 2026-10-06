@@ -8,34 +8,28 @@
 # Nothing else in the page changes.
 #
 #   usage:  ./add-real-icons.sh eks/index.html
-#           ./add-real-icons.sh terraform-gitops/index.html
-#           ./add-real-icons.sh argocd-pipeline/index.html
-#           ./add-real-icons.sh delivery-scoreboard/index.html
-#           ./add-real-icons.sh fastapi-react/index.html
+#           for f in */index.html; do ./add-real-icons.sh "$f"; done
 #
-# The same icon file is reused across pages where the same tool appears in
-# more than one diagram (kubernetes.svg, github.svg, engineer.svg) — drop it
-# in once and every page picks it up.
+# The same icon file is reused wherever the same tool appears in more than one
+# diagram (kubernetes.svg, github.svg, engineer.svg, ...) — drop it in once
+# and every page picks it up.
 #
 # Files to place in assets/icons/ (keep these exact names):
-#   route53.svg  alb.svg  ebs.svg  ec2.svg     -> AWS Architecture Icons
-#   iam.svg  s3.svg  rds.svg  dynamodb.svg        https://aws.amazon.com/architecture/icons/
-#   vpc.svg
-#   kubernetes.svg                             -> https://github.com/cncf/artwork  (CNCF)
-#   argocd.svg                                 -> https://argo-cd.readthedocs.io (brand assets)
-#   terraform.svg  github-actions.svg          -> HashiCorp / GitHub brand assets
-#   nginx.svg  postgresql.svg  duckdb.svg      -> each project's own press/brand page
-#   cert-manager.svg  external-dns.svg
-#   sealed-secrets.svg  renovate.svg
-#   aws-load-balancer-controller.svg
-#   metrics-server.svg  grafana.svg
-#   ecr.svg  helm.svg  redis.svg  celery.svg   -> AWS icons / each project's brand page
-#   fastapi.svg  ingress.svg
-#   github.svg                                 -> GitHub logo/brand assets
-#   httpbin.svg  browser.svg  engineer.svg     -> any neutral icon set you like
-#   presync-hook.svg  workload.svg  corpus.svg
-#   sql.svg  assert.svg  clock.svg  ai.svg
-#   gate.svg  join.svg  html.svg
+#   AWS Architecture Icons  https://aws.amazon.com/architecture/icons/
+#     acm alb api-gateway aurora cloudformation cloudfront cloudwatch
+#     codeartifact codebuild codedeploy codepipeline dynamodb ebs ec2 ecr eks
+#     elastic-beanstalk iam lambda rds route53 s3 ses vpc
+#     aws-load-balancer-controller
+#   CNCF artwork            https://github.com/cncf/artwork
+#     kubernetes helm prometheus fluent-bit operator
+#   Each project's own brand page
+#     argocd cert-manager external-dns sealed-secrets renovate metrics-server
+#     grafana terraform github github-actions jenkins sonarqube maven junit
+#     pytest python fastapi flask docker docker-hub nginx postgresql mysql php
+#     redis celery duckdb chroma ollama open5gs slack mcp
+#   Any neutral icon set
+#     ai alert assert browser clock corpus doc engineer gate html httpbin
+#     ingress join json presync-hook secrets sql terminal workload zip
 #
 # Check each project's trademark terms before publishing. AWS's icon licence
 # permits use in architecture diagrams like this one.

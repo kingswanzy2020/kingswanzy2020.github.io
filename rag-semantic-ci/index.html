@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Case study: a GitHub Actions workflow that re-embeds a RAG API&#x27;s knowledge base and runs deterministic semantic tests against its retrieval layer on every relevant push.">
+<title>Semantic CI for a RAG API</title>
+<meta name="theme-color" content="#0b1220">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@500;600&display=swap">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body class="case">
+<div class="bar">
+  <div class="wrap">
+    <a class="brand" href="../"><span class="avatar sm" aria-hidden="true">AT</span><b>Ahmed Tetteh</b><small>DevOps &middot; Platform &middot; SRE</small></a>
+    <nav>
+      <a class="back" href="../#work">&larr; All case studies</a>
+      <a href="https://github.com/kingswanzy2020">GitHub</a>
+      <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a>
+      <a href="mailto:kingsleyswanzy@gmail.com">Email</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div class="col">
+      <p class="eyebrow">Case study &mdash; CI/CD / AI</p>
+      <h1>Catching knowledge-base regressions in CI for a RAG API</h1>
+      <p class="standfirst">I wrote a GitHub Actions workflow that rebuilds a RAG API's embeddings and runs semantic tests against what it retrieves, so a push that quietly degrades the knowledge base fails the build &mdash; and made those tests deterministic by taking the LLM out of them.</p>
+
+      <div class="status">
+        <span class="chip">CI workflow</span>
+        <p>This isn't a hosted service. It's a workflow file in the repo that runs on GitHub's own runners whenever the knowledge base, <code>app.py</code> or the embedding script changes. Everything below describes the runs I triggered while building it.</p>
+      </div>
+    </div>
+
+    <dl class="spec">
+      <div><dt>CI</dt><dd>GitHub Actions, ubuntu runner</dd></div>
+      <div><dt>Trigger</dt><dd>push touching docs/, app.py, embed</dd></div>
+      <div><dt>App</dt><dd>FastAPI RAG over Chroma</dd></div>
+      <div><dt>LLM in CI</dt><dd>none &mdash; mock mode</dd></div>
+      <div><dt>Tests</dt><dd>keywords in retrieved context</dd></div>
+      <div><dt>Locally</dt><dd>Ollama, tinyllama</dd></div>
+    </dl>
+  </header>
+
+  <section>
+    <div class="col">
+      <h2>What it does</h2>
+      <p class="h2note">Summary</p>
+      <p>The RAG API retrieves context from a Chroma vector store and asks a local model to answer with it. Ordinary unit tests can't protect that: the code can stay correct while the answers get worse because someone edited a document. The workflow re-embeds every document in <code>docs/</code>, starts the API in mock LLM mode &mdash; which returns the raw retrieved context instead of a generated answer &mdash; and asserts that known queries still retrieve their expected keywords. A missing keyword fails the build.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>How it is wired</h2>
+      <p class="h2note">The mechanism</p>
+      <p><strong>Why take the LLM out of the tests?</strong> Because it made the tests lie. I removed the word "orchestration" from the knowledge base and kept seeing it in generated answers anyway &mdash; the model already knows what Kubernetes is. A test that checks generated text can pass on a broken knowledge base. Mock mode (<code>USE_MOCK_LLM</code>) returns exactly what was retrieved, so the same query gives the same result every run and a missing keyword really means it wasn't retrieved.</p>
+      <p><strong>Why test retrieval rather than code?</strong> In a RAG system the data is part of the product. Semantic tests check that a known question still pulls back the context it should, which is a data-quality check, not a logic check.</p>
+      <p><strong>Why re-embed in CI instead of committing the vectors?</strong> The test has to run against what the documents say now. The workflow runs the embedding script on every run, so an edited document changes the vectors the tests query. When the knowledge base grew to several files, I moved them into <code>docs/</code> and switched to <code>embed_docs.py</code>, which embeds the whole folder.</p>
+      <p><strong>Why a path filter?</strong> The workflow only has something to say when the knowledge base, <code>app.py</code> or the embedding code changes, so those paths are what trigger it.</p>
+    </div>
+
+    <figure class="fig">
+      <div class="fig-scroll">
+<svg viewBox="0 0 1244 500" role="img" aria-label="A developer pushes a change to the knowledge base to GitHub. The GitHub Actions workflow installs dependencies, rebuilds the embeddings into Chroma, starts the FastAPI app in mock LLM mode, and runs semantic tests against the retrieved context. A pass marks the build green; a missing keyword fails it. Locally, the same API uses Ollama with tinyllama."><defs><marker id="mreq" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-app)"/></marker><marker id="mdata" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--dg-line)"/></marker><marker id="mctl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-ctl)"/></marker><marker id="mobs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-obs)"/></marker><marker id="maws" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-aws)"/></marker><marker id="mneu" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-neu)"/></marker></defs><rect x="384" y="60" width="844" height="290" rx="8" fill="none" stroke="var(--c-ctl)" stroke-width="1.2" stroke-dasharray="6 5" opacity=".8"/><text x="402" y="53" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="10.5" letter-spacing="1.3" fill="var(--c-ctl)">GITHUB ACTIONS — test-and-build · ubuntu-latest</text><g><rect x="16" y="110" width="136" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M21,110.65 h126 a4.4,4.4 0 0 1 4.4,4.4 v0 h-134.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="29" y="123" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><circle cx="44" cy="134" r="3.6" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M36.5,146 a7.5,6.5 0 0 1 15,0" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:engineer--><!--<image href="../assets/icons/engineer.svg" x="31" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="67" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Developer</text><text x="29" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">edits docs/</text><rect x="29" y="177" width="58" height="15" rx="3" fill="var(--c-neu-s)"/><text x="35" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">git push</text></g><g><rect x="192" y="110" width="160" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-ctl)" stroke-width="1.3"/><path d="M197,110.65 h150 a4.4,4.4 0 0 1 4.4,4.4 v0 h-158.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-ctl)"/><rect x="205" y="123" width="30" height="30" rx="6" fill="var(--c-ctl-s)"/><circle cx="215" cy="131.5" r="2.3" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="215" cy="144.5" r="2.3" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="225" cy="135" r="2.3" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="215" y1="133.8" x2="215" y2="142.2" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M225,137.3 c0,4 -10,3 -10,5" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:github--><!--<image href="../assets/icons/github.svg" x="207" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="243" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">GitHub</text><text x="205" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">nextwork-rag-api</text><rect x="205" y="177" width="75" height="15" rx="3" fill="var(--c-ctl-s)"/><text x="211" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-ctl)">path filter</text></g><g><rect x="408" y="110" width="190" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-ctl)" stroke-width="1.3"/><path d="M413,110.65 h180 a4.4,4.4 0 0 1 4.4,4.4 v0 h-188.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-ctl)"/><rect x="421" y="123" width="30" height="30" rx="6" fill="var(--c-ctl-s)"/><path d="M443,135 a7.5,7.5 0 0 0 -13.5,-1" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="429,130 429.3,134.2 433.5,134" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M429,141 a7.5,7.5 0 0 0 13.5,1" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="443,146 442.7,141.8 438.5,142" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:python--><!--<image href="../assets/icons/python.svg" x="423" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="459" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Rebuild embeddings</text><text x="421" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">embed_docs.py</text><rect x="421" y="177" width="64" height="15" rx="3" fill="var(--c-ctl-s)"/><text x="427" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-ctl)">every run</text></g><g><rect x="408" y="250" width="190" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-app)" stroke-width="1.3"/><path d="M413,250.65 h180 a4.4,4.4 0 0 1 4.4,4.4 v0 h-188.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-app)"/><rect x="421" y="263" width="30" height="30" rx="6" fill="var(--c-app-s)"/><ellipse cx="436" cy="273" rx="7.5" ry="3" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M428.5,273 v10 a7.5,3 0 0 0 15,0 v-10" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M428.5,278 a7.5,3 0 0 0 15,0" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:chroma--><!--<image href="../assets/icons/chroma.svg" x="423" y="265" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="459" y="283" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Chroma</text><text x="421" y="309" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">vectors from docs/</text><rect x="421" y="317" width="92" height="15" rx="3" fill="var(--c-app-s)"/><text x="427" y="327.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-app)">fresh each run</text></g><g><rect x="640" y="110" width="176" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-app)" stroke-width="1.3"/><path d="M645,110.65 h166 a4.4,4.4 0 0 1 4.4,4.4 v0 h-174.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-app)"/><rect x="653" y="123" width="30" height="30" rx="6" fill="var(--c-app-s)"/><polyline points="665,132 660,138 665,144" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="671,132 676,138 671,144" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="669" y1="131" x2="667" y2="145" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:fastapi--><!--<image href="../assets/icons/fastapi.svg" x="655" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="691" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">RAG API</text><text x="653" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">USE_MOCK_LLM</text><rect x="653" y="177" width="121" height="15" rx="3" fill="var(--c-app-s)"/><text x="659" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-app)">returns raw context</text></g><g><rect x="860" y="110" width="176" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-obs)" stroke-width="1.3"/><path d="M865,110.65 h166 a4.4,4.4 0 0 1 4.4,4.4 v0 h-174.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-obs)"/><rect x="873" y="123" width="30" height="30" rx="6" fill="var(--c-obs-s)"/><path d="M888,129.5 l8.5,8.5 l-8.5,8.5 l-8.5,-8.5 z" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="884.8,138 887.2,140.6 891.6,135.4" fill="none" stroke="var(--c-obs)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:assert--><!--<image href="../assets/icons/assert.svg" x="875" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="911" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Semantic tests</text><text x="873" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">semantic_test.py</text><rect x="873" y="177" width="110" height="15" rx="3" fill="var(--c-obs-s)"/><text x="879" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-obs)">expected keywords</text></g><g><rect x="1062" y="110" width="154" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-app)" stroke-width="1.3"/><path d="M1067,110.65 h144 a4.4,4.4 0 0 1 4.4,4.4 v0 h-152.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-app)"/><rect x="1075" y="123" width="30" height="30" rx="6" fill="var(--c-app-s)"/><path d="M1090,129.5 l8.5,8.5 l-8.5,8.5 l-8.5,-8.5 z" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="1086.8,138 1089.2,140.6 1093.6,135.4" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:gate--><!--<image href="../assets/icons/gate.svg" x="1077" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="1113" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Build green</text><text x="1075" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">retrieval verified</text><rect x="1075" y="177" width="35" height="15" rx="3" fill="var(--c-app-s)"/><text x="1081" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-app)">pass</text></g><g><rect x="1062" y="250" width="154" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M1067,250.65 h144 a4.4,4.4 0 0 1 4.4,4.4 v0 h-152.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="1075" y="263" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><circle cx="1090" cy="278" r="8.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="1086.5" y1="274.5" x2="1093.5" y2="281.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="1093.5" y1="274.5" x2="1086.5" y2="281.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:gate--><!--<image href="../assets/icons/gate.svg" x="1077" y="265" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="1113" y="283" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Build failed</text><text x="1075" y="309" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">AssertionError</text><rect x="1075" y="317" width="98" height="15" rx="3" fill="var(--c-neu-s)"/><text x="1081" y="327.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">missing keyword</text></g><g><rect x="640" y="400" width="176" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M645,400.65 h166 a4.4,4.4 0 0 1 4.4,4.4 v0 h-174.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="653" y="413" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><rect x="661" y="421" width="14" height="14" rx="2.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="668" cy="428" r="2.6" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="665" y1="418.5" x2="665" y2="421" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="671" y1="418.5" x2="671" y2="421" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="665" y1="435" x2="665" y2="437.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="671" y1="435" x2="671" y2="437.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:ollama--><!--<image href="../assets/icons/ollama.svg" x="655" y="415" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="691" y="433" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Ollama · tinyllama</text><text x="653" y="459" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">local runs only</text><rect x="653" y="467" width="64" height="15" rx="3" fill="var(--c-neu-s)"/><text x="659" y="477.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">not in CI</text></g><line x1="152" y1="154" x2="188" y2="154" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><line x1="352" y1="154" x2="404" y2="154" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><line x1="503" y1="198" x2="503" y2="246" stroke="var(--c-app)" stroke-width="1.6" marker-end="url(#mreq)" fill="none"/><polyline points="688,198 688,294 602,294" stroke="var(--dg-line)" stroke-width="1.6" marker-end="url(#mdata)" fill="none"/><line x1="598" y1="154" x2="636" y2="154" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><line x1="816" y1="154" x2="856" y2="154" stroke="var(--c-obs)" stroke-width="1.4" marker-end="url(#mobs)" fill="none"/><line x1="1036" y1="154" x2="1058" y2="154" stroke="var(--c-app)" stroke-width="1.6" marker-end="url(#mreq)" fill="none"/><polyline points="948,198 948,294 1058,294" stroke="var(--c-neu)" stroke-width="1.4" marker-end="url(#mneu)" fill="none"/><line x1="758" y1="198" x2="758" y2="396" stroke="var(--c-neu)" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#mneu)" fill="none"/><circle cx="170" cy="154" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="170" y="157.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">1</text><circle cx="378" cy="154" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="378" y="157.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">2</text><circle cx="503" cy="222" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="503" y="225.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">3</text><circle cx="688" cy="246" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="688" y="249.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">4</text><circle cx="617" cy="154" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="617" y="157.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">5</text><circle cx="836" cy="154" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="836" y="157.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">6</text><circle cx="1047" cy="154" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="1047" y="157.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">7</text><circle cx="1003" cy="294" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="1003" y="297.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">8</text><circle cx="758" cy="297" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="758" y="300.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">9</text></svg>
+      </div>
+      <figcaption>The workflow as it ran. Arrow 9 is dashed on purpose: the model is the part I took out of CI, because a test that reads generated text passed even after I'd removed the fact it was checking for.</figcaption>
+    </figure>
+
+    <div class="wiring">
+      <div class="panel">
+        <h4>How the components communicate</h4>
+        <table class="wire">
+          <thead><tr><th>No</th><th>From &rarr; to</th><th>Mechanism</th><th>What happens</th></tr></thead>
+          <tbody>
+          <tr><td>1</td><td class="ft">Developer &rarr; GitHub</td><td class="mech">git push</td><td>A change to the knowledge base, <code>app.py</code> or the embedding script.</td></tr>
+          <tr><td>2</td><td class="ft">GitHub &rarr; workflow</td><td class="mech">on: push (paths)</td><td>Checkout, set up Python, install dependencies, then the steps below.</td></tr>
+          <tr><td>3</td><td class="ft">Rebuild embeddings &rarr; Chroma</td><td class="mech">write vectors</td><td>Re-embeds every file in <code>docs/</code>.</td></tr>
+          <tr><td>4</td><td class="ft">RAG API &rarr; Chroma</td><td class="mech">similarity search</td><td>The API retrieves context for each test query.</td></tr>
+          <tr><td>5</td><td class="ft">Rebuild embeddings &rarr; RAG API</td><td class="mech">start API</td><td>Started in mock mode, so no model runs in CI.</td></tr>
+          <tr><td>6</td><td class="ft">RAG API &rarr; Semantic tests</td><td class="mech">POST /query</td><td>Returns the raw retrieved context, the same every run.</td></tr>
+          <tr><td>7</td><td class="ft">Semantic tests &rarr; Build green</td><td class="mech">all keywords found</td><td>Retrieval quality verified for every query.</td></tr>
+          <tr><td>8</td><td class="ft">Semantic tests &rarr; Build failed</td><td class="mech">keyword missing</td><td>Fails the job, e.g. <code>Missing 'orchestration' keyword</code>.</td></tr>
+          <tr><td>9</td><td class="ft">RAG API &rarr; Ollama · tinyllama</td><td class="mech">local only</td><td>Generates real answers on my machine; skipped in CI because it isn't deterministic.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="panel">
+          <h4>Legend</h4>
+          <div class="key">
+            <div><i style="background:var(--c-neu)"></i><span><b>Outside the test path</b>developer, Ollama, the failure</span></div>
+            <div><i style="background:var(--c-ctl)"></i><span><b>Source &amp; workflow steps</b>GitHub, embedding, startup</span></div>
+            <div><i style="background:var(--c-app)"></i><span><b>System under test</b>Chroma and the RAG API</span></div>
+            <div><i style="background:var(--c-obs)"></i><span><b>The tests</b>semantic assertions</span></div>
+            <div><u style="border-color:var(--c-ctl)"></u><span><b>Workflow flow</b>step to step</span></div>
+            <div><u style="border-color:var(--c-obs)"></u><span><b>Test query</b>against retrieval</span></div>
+            <div><u style="border-color:var(--dg-line)"></u><span><b>Retrieval</b>vector search</span></div>
+            <div><u style="border-color:var(--c-neu); border-top-style:dashed"></u><span><b>Local only</b>never in CI</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h4>What it touches</h4>
+          <p class="surface"><b>Runs on &mdash;</b> GitHub-hosted <code>ubuntu-latest</code> runners, started by a push.<br>
+          <b>Network &mdash;</b> none to an LLM &mdash; mock mode keeps the model out of the job.<br>
+          <b>Writes &mdash;</b> nothing outside the runner; the vectors are rebuilt and thrown away each run.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What I verified, and how</h2>
+      <p class="h2note">Evidence, separated from design intent</p>
+      <p>Building something and being able to prove it works are different claims, so I've kept them separate below. <strong>Measured</strong> means I created the condition myself and recorded what happened. <strong>Observed</strong> means I looked at the workflow runs and saw the state it was already in. <strong>By design</strong> means the configuration guarantees it, but I didn't run a test against it &mdash; better to say that plainly than dress it up as a result.</p>
+    </div>
+
+    <div class="ledger">
+
+      <div class="v-row measured">
+        <div class="v-tag">Measured</div>
+        <div>
+          <h3>Removing a keyword from the knowledge base failed the build</h3>
+          <p>I removed "orchestration" from the Kubernetes document and pushed. The workflow got through checkout, setup, install, rebuilding embeddings and starting the API, then failed at <code>Run semantic tests</code> with <code>AssertionError: Missing 'orchestration' keyword</code>. The degraded document didn't get a green build.</p>
+          <p class="v-method"><b>Method</b> Pushed the edited document and read the failing step's log.</p>
+        </div>
+      </div>
+      <div class="v-row measured">
+        <div class="v-tag">Measured</div>
+        <div>
+          <h3>Generated answers hid the regression; retrieved context didn't</h3>
+          <p>With the keyword removed, I queried the API several times in normal mode and still saw "orchestration" in the answers &mdash; the model filled it in. In mock mode the retrieved context reflected the edit immediately. That difference is why the tests run against retrieval.</p>
+          <p class="v-method"><b>Method</b> Queried <code>/query</code> repeatedly with and without mock mode after editing the document.</p>
+        </div>
+      </div>
+      <div class="v-row observed">
+        <div class="v-tag">Observed</div>
+        <div>
+          <h3>Adding a second document surfaced a failing test straight away</h3>
+          <p>The first run after restructuring into <code>docs/</code> with a second document passed the Kubernetes query and failed the new one on <code>Missing 'maximus' keyword</code>. That's the run I kept a screenshot of; I'm not claiming a green multi-document run here.</p>
+          <p class="v-method"><b>Method</b> Read the job log for the multi-document commit.</p>
+        </div>
+      </div>
+      <div class="v-row design">
+        <div class="v-tag">By design</div>
+        <div>
+          <h3>Same query, same result</h3>
+          <p>In mock mode the API returns the retrieved text with no sampling involved, so the tests have nothing random in them. I didn't run the suite hundreds of times to measure flakiness; the determinism comes from removing the model, not from a statistic.</p>
+          <p class="v-method"><b>Method</b> Reviewed the mock-mode path in <code>app.py</code>.</p>
+        </div>
+      </div>
+
+    </div>
+    <p class="legend">Four claims. two measured, one observed, one stated as a design property rather than dressed up as a result.</p>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Proof</h2>
+      <p class="h2note">From the workflow runs</p>
+    </div>
+    <div class="shots">
+      <figure>
+        <img loading="lazy" alt="curl POST to the local /query endpoint returning an answer about Kubernetes" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/ci-cd/github-actions-automated-testing/Screenshots/Screenshot%20from%202026-01-15%2022-30-16.png">
+        <figcaption>The API answering locally before any automation.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="GitHub Actions test-and-build job failing at Run semantic tests with AssertionError Missing orchestration keyword" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/ci-cd/github-actions-automated-testing/Screenshots/Screenshot%20from%202026-01-31%2021-27-06.png">
+        <figcaption>The degraded document failing at <code>Run semantic tests</code>.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="Workflow run for adding a second document: Kubernetes query test passed, NextWork query test failed on missing maximus keyword" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/ci-cd/github-actions-automated-testing/Screenshots/Screenshot%20from%202026-01-31%2022-24-52.png">
+        <figcaption>The multi-document run: one query passing, the new one failing.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="nextwork-rag-api repository with app.py, embed.py, Dockerfile, k8s.txt and Kubernetes manifests" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/ci-cd/github-actions-automated-testing/Screenshots/Screenshot%20from%202026-01-30%2000-02-46.png">
+        <figcaption>The repository the workflow runs against.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What actually broke</h2>
+      <p class="h2note">Two failures worth keeping</p>
+      <div class="broke">
+        <article>
+          <h3>The model kept saying a word I'd deleted</h3>
+          <p>The first version of the test checked generated answers. I removed "orchestration" from the knowledge base to prove the test would catch it &mdash; and the answers still contained it, because tinyllama already knows what Kubernetes is. A test that passes on a broken input is worse than no test. That's where mock mode came from.</p>
+        </article>
+        <article>
+          <h3>The second document failed its first run</h3>
+          <p>When I restructured into <code>docs/</code> and added a NextWork document with its own test, the Kubernetes query still passed and the new query failed on <code>maximus</code>. That's the suite doing its job on new content: the expected keyword and what the document actually retrieved didn't agree.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Source</h2>
+      <p class="h2note">Everything on this page came from here</p>
+      <div class="src">
+        <p>The FastAPI service, the embedding scripts, <code>semantic_test.py</code> and <code>.github/workflows/ci.yml</code>, including the <code>USE_MOCK_LLM</code> path, live here: <a href="https://github.com/kingswanzy2020/nextwork-rag-api">kingswanzy2020/nextwork-rag-api</a>. The same repo is the subject of the <a href="../rag-api/">RAG API case study</a>.</p>
+        <pre>git clone https://github.com/kingswanzy2020/nextwork-rag-api.git</pre>
+      </div>
+      <p class="stack"><b>Stack</b><br>GitHub Actions &middot; CI for AI systems &middot; semantic testing &middot; mock LLM mode &middot; FastAPI &middot; Chroma &middot; RAG &middot; Ollama &middot; path-filtered triggers</p>
+    </div>
+  </section>
+
+  <nav class="next" aria-label="More case studies">
+    <a href="../aws-cicd-pipeline/"><small>&larr; Previous</small>A 7-day AWS-native CI/CD pipeline</a>
+    <a class="r" href="../ai-pr-review/"><small>Next &rarr;</small>AI pull-request review with Gemini</a>
+  </nav>
+
+  <footer class="col">
+    Ahmed Tetteh &middot; <a href="mailto:kingsleyswanzy@gmail.com">kingsleyswanzy@gmail.com</a> &middot; <a href="https://github.com/kingswanzy2020">github.com/kingswanzy2020</a> &middot; <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a><br>
+    Static HTML and CSS. No JavaScript, no framework, no build step for the page itself.
+  </footer>
+
+</div>
+</body>
+</html>

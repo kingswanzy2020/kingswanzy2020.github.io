@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Case study: a two-repo pipeline where Jenkins builds and tags an image, commits the tag to a manifests repo, and ArgoCD deploys it. What was built, and what was actually verified.">
+<title>Jenkins CI to ArgoCD GitOps</title>
+<meta name="theme-color" content="#0b1220">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@500;600&display=swap">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body class="case">
+<div class="bar">
+  <div class="wrap">
+    <a class="brand" href="../"><span class="avatar sm" aria-hidden="true">AT</span><b>Ahmed Tetteh</b><small>DevOps &middot; Platform &middot; SRE</small></a>
+    <nav>
+      <a class="back" href="../#work">&larr; All case studies</a>
+      <a href="https://github.com/kingswanzy2020">GitHub</a>
+      <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a>
+      <a href="mailto:kingsleyswanzy@gmail.com">Email</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header class="mast">
+    <div class="col">
+      <p class="eyebrow">Case study &mdash; Kubernetes / GitOps</p>
+      <h1>A two-repo pipeline where Jenkins never touches the cluster</h1>
+      <p class="standfirst">I split CI and CD across two repositories: Jenkins builds the image, pushes a build-numbered tag to Docker Hub and commits that tag to a manifests repo, and ArgoCD is the only thing that ever applies anything to Kubernetes.</p>
+
+      <div class="status">
+        <span class="chip">Local cluster</span>
+        <p>This ran against a local cluster through my own kubeconfig; Terraform created the namespaces and PostgreSQL there before the pipeline's first run. Nothing was exposed publicly. The two repos reproduce it on any cluster with ArgoCD installed, and everything below describes that run.</p>
+      </div>
+    </div>
+
+    <dl class="spec">
+      <div><dt>Platform</dt><dd>Kubernetes, ArgoCD auto-sync</dd></div>
+      <div><dt>CI</dt><dd>Jenkins, Docker Hub</dd></div>
+      <div><dt>Handoff</dt><dd>Git commit to a manifests repo</dd></div>
+      <div><dt>Image tags</dt><dd>:BUILD_NUMBER, pinned</dd></div>
+      <div><dt>Database</dt><dd>PostgreSQL in its own namespace</dd></div>
+      <div><dt>Baseline</dt><dd>Terraform, kubernetes provider</dd></div>
+    </dl>
+  </header>
+
+  <section>
+    <div class="col">
+      <h2>What it does</h2>
+      <p class="h2note">Summary</p>
+      <p>A push to <code>devops-pipeline-app</code> triggered a Jenkins job that built the Flask API with a multi-stage Dockerfile and pushed it to Docker Hub as <code>:BUILD_NUMBER</code> and <code>:latest</code>. Jenkins then cloned <code>devops-pipeline-manifests</code>, rewrote the image line in <code>k8s/deployment.yaml</code> with <code>sed</code> and pushed the commit as <code>Jenkins CI</code>. ArgoCD auto-synced that repo and rolled the two-replica <code>devops-app</code> Deployment in <code>production</code> over to the new tag. The pods reached PostgreSQL in the <code>database</code> namespace, which Terraform had created along with the namespaces.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>How it is wired</h2>
+      <p class="h2note">The mechanism</p>
+      <p><strong>Why a Git commit as the handoff instead of <code>kubectl apply</code> from CI?</strong> If CI ends with <code>kubectl apply</code>, the build server needs a kubeconfig that can write to production, and a compromised job is a compromised cluster. Here Jenkins holds Docker Hub and GitHub credentials and nothing else. Its last stage clones the manifests repo with a <code>github-creds</code> token, changes one line, and pushes. ArgoCD pulls that change in; Jenkins never learns the cluster's address.</p>
+      <p><strong>Why pin the build number instead of <code>:latest</code>?</strong> When every deploy reuses one tag, nobody can say which build is running and a rollback has nothing to go back to. Every build pushes both tags, but the manifest always pins the numbered one, so the manifests repo's history reads as a deploy log &mdash; <code>Update image to build 2</code> &mdash; and rolling back is reverting one Jenkins commit while the older image is still on Docker Hub.</p>
+      <p><strong>Why is the database in its own namespace?</strong> The app runs in <code>production</code> and PostgreSQL in <code>database</code>, reached at the fully qualified <code>postgres-service.database.svc.cluster.local</code> through <code>DB_HOST</code>. Splitting them means each can get its own access controls and quotas later without editing the app manifest.</p>
+      <p><strong>Why does <code>/health</code> query the database?</strong> <code>/health</code> runs <code>SELECT 1</code> and returns <code>500</code> if it fails, so it reports whether the app can reach its data, not just whether the process is up. It's built as a readiness target. The image itself is a two-stage build: dependencies installed with <code>--prefix=/install</code> in a builder, only <code>/install</code> copied into a fresh <code>python:3.11-slim</code>, run as a non-root user under Gunicorn with two workers.</p>
+    </div>
+
+    <figure class="fig">
+      <div class="fig-scroll">
+<svg viewBox="0 0 1244 560" role="img" aria-label="Pipeline: a developer pushes to the app repo, which triggers Jenkins. Jenkins pushes the image to Docker Hub and commits the new tag to the manifests repo. ArgoCD watches the manifests repo and rolls the devops-app Deployment in the production namespace, which pulls the image from Docker Hub and queries PostgreSQL in the database namespace. Terraform created the namespaces and PostgreSQL."><defs><marker id="mreq" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-app)"/></marker><marker id="mdata" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--dg-line)"/></marker><marker id="mctl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-ctl)"/></marker><marker id="mobs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-obs)"/></marker><marker id="maws" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-aws)"/></marker><marker id="mneu" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><polygon points="0,0 10,5 0,10" fill="var(--c-neu)"/></marker></defs><rect x="640" y="70" width="588" height="460" rx="8" fill="none" stroke="var(--c-app)" stroke-width="1.2" stroke-dasharray="6 5" opacity=".8"/><text x="658" y="63" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="10.5" letter-spacing="1.3" fill="var(--c-app)">KUBERNETES — LOCAL KUBECONFIG · NAMESPACES BY TERRAFORM</text><rect x="660" y="250" width="548" height="118" rx="8" fill="none" stroke="var(--c-app)" stroke-width="1.1" stroke-dasharray="3 4" opacity=".8"/><text x="678" y="243" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="10" letter-spacing="1.3" fill="var(--c-app)">NAMESPACE production</text><rect x="660" y="410" width="548" height="106" rx="8" fill="none" stroke="var(--c-app)" stroke-width="1.1" stroke-dasharray="3 4" opacity=".8"/><text x="678" y="403" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="10" letter-spacing="1.3" fill="var(--c-app)">NAMESPACE database</text><g><rect x="16" y="110" width="136" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M21,110.65 h126 a4.4,4.4 0 0 1 4.4,4.4 v0 h-134.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="29" y="123" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><circle cx="44" cy="134" r="3.6" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M36.5,146 a7.5,6.5 0 0 1 15,0" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:engineer--><!--<image href="../assets/icons/engineer.svg" x="31" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="67" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Developer</text><text x="29" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">git push</text><rect x="29" y="177" width="58" height="15" rx="3" fill="var(--c-neu-s)"/><text x="35" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">app code</text></g><g><rect x="196" y="110" width="176" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-ctl)" stroke-width="1.3"/><path d="M201,110.65 h166 a4.4,4.4 0 0 1 4.4,4.4 v0 h-174.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-ctl)"/><rect x="209" y="123" width="30" height="30" rx="6" fill="var(--c-ctl-s)"/><circle cx="219" cy="131.5" r="2.3" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="219" cy="144.5" r="2.3" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="229" cy="135" r="2.3" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="219" y1="133.8" x2="219" y2="142.2" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M229,137.3 c0,4 -10,3 -10,5" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:github--><!--<image href="../assets/icons/github.svg" x="211" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="247" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">devops-pipeline-app</text><text x="209" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">Flask · Dockerfile</text><rect x="209" y="177" width="75" height="15" rx="3" fill="var(--c-ctl-s)"/><text x="215" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-ctl)">Jenkinsfile</text></g><g><rect x="196" y="280" width="176" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-ctl)" stroke-width="1.3"/><path d="M201,280.65 h166 a4.4,4.4 0 0 1 4.4,4.4 v0 h-174.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-ctl)"/><rect x="209" y="293" width="30" height="30" rx="6" fill="var(--c-ctl-s)"/><circle cx="224" cy="308" r="4.5" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="224" y1="299" x2="224" y2="302" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="224" y1="314" x2="224" y2="317" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="215" y1="308" x2="218" y2="308" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="230" y1="308" x2="233" y2="308" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="217.6" y1="301.6" x2="219.8" y2="303.8" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="228.2" y1="312.2" x2="230.4" y2="314.4" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="230.4" y1="301.6" x2="228.2" y2="303.8" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="219.8" y1="312.2" x2="217.6" y2="314.4" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:jenkins--><!--<image href="../assets/icons/jenkins.svg" x="211" y="295" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="247" y="313" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Jenkins</text><text x="209" y="339" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">no kubeconfig</text><rect x="209" y="347" width="133" height="15" rx="3" fill="var(--c-ctl-s)"/><text x="215" y="357.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-ctl)">build · push · commit</text></g><g><rect x="196" y="440" width="176" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-neu)" stroke-width="1.3"/><path d="M201,440.65 h166 a4.4,4.4 0 0 1 4.4,4.4 v0 h-174.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-neu)"/><rect x="209" y="453" width="30" height="30" rx="6" fill="var(--c-neu-s)"/><path d="M224,459.5 l8,4 v9 l-8,4 l-8,-4 v-9 z" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="216,463.5 224,467.5 232,463.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="224" y1="467.5" x2="224" y2="476.5" fill="none" stroke="var(--c-neu)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:docker-hub--><!--<image href="../assets/icons/docker-hub.svg" x="211" y="455" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="247" y="473" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Docker Hub</text><text x="209" y="499" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">:BUILD_NUMBER + :latest</text><rect x="209" y="507" width="58" height="15" rx="3" fill="var(--c-neu-s)"/><text x="215" y="517.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-neu)">registry</text></g><g><rect x="408" y="280" width="190" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-ctl)" stroke-width="1.3"/><path d="M413,280.65 h180 a4.4,4.4 0 0 1 4.4,4.4 v0 h-188.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-ctl)"/><rect x="421" y="293" width="30" height="30" rx="6" fill="var(--c-ctl-s)"/><path d="M430,300 h8 l5,5 v11 h-13 z" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="438,300 438,305 443,305" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="433" y1="309" x2="440" y2="309" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="433" y1="312.5" x2="440" y2="312.5" fill="none" stroke="var(--c-ctl)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:github--><!--<image href="../assets/icons/github.svg" x="423" y="295" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="459" y="313" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">manifests repo</text><text x="421" y="339" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">k8s/deployment.yaml</text><rect x="421" y="347" width="70" height="15" rx="3" fill="var(--c-ctl-s)"/><text x="427" y="357.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-ctl)">deploy log</text></g><g><rect x="680" y="110" width="170" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-app)" stroke-width="1.3"/><path d="M685,110.65 h160 a4.4,4.4 0 0 1 4.4,4.4 v0 h-168.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-app)"/><rect x="693" y="123" width="30" height="30" rx="6" fill="var(--c-app-s)"/><path d="M715,135 a7.5,7.5 0 0 0 -13.5,-1" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="701,130 701.3,134.2 705.5,134" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M701,141 a7.5,7.5 0 0 0 13.5,1" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="715,146 714.7,141.8 710.5,142" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:argocd--><!--<image href="../assets/icons/argocd.svg" x="695" y="125" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="731" y="143" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">ArgoCD</text><text x="693" y="169" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">auto-sync</text><rect x="693" y="177" width="87" height="15" rx="3" fill="var(--c-app-s)"/><text x="699" y="187.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-app)">only deployer</text></g><g><rect x="680" y="268" width="200" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-app)" stroke-width="1.3"/><path d="M685,268.65 h190 a4.4,4.4 0 0 1 4.4,4.4 v0 h-198.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-app)"/><rect x="693" y="281" width="30" height="30" rx="6" fill="var(--c-app-s)"/><rect x="700" y="288" width="16" height="16" rx="3" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><rect x="704" y="292" width="8" height="8" rx="1.5" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:workload--><!--<image href="../assets/icons/workload.svg" x="695" y="283" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="731" y="301" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">devops-app × 2</text><text x="693" y="327" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">Gunicorn · non-root</text><rect x="693" y="335" width="70" height="15" rx="3" fill="var(--c-app-s)"/><text x="699" y="345.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-app)">maxSurge 1</text></g><g><rect x="680" y="424" width="200" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-app)" stroke-width="1.3"/><path d="M685,424.65 h190 a4.4,4.4 0 0 1 4.4,4.4 v0 h-198.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-app)"/><rect x="693" y="437" width="30" height="30" rx="6" fill="var(--c-app-s)"/><ellipse cx="708" cy="447" rx="7.5" ry="3" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M700.5,447 v10 a7.5,3 0 0 0 15,0 v-10" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M700.5,452 a7.5,3 0 0 0 15,0" fill="none" stroke="var(--c-app)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:postgresql--><!--<image href="../assets/icons/postgresql.svg" x="695" y="439" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="731" y="457" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">PostgreSQL</text><text x="693" y="483" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">postgres-service</text><rect x="693" y="491" width="64" height="15" rx="3" fill="var(--c-app-s)"/><text x="699" y="501.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-app)">ClusterIP</text></g><g><rect x="1020" y="424" width="170" height="88" rx="5" fill="var(--dg-box)" stroke="var(--c-aws)" stroke-width="1.3"/><path d="M1025,424.65 h160 a4.4,4.4 0 0 1 4.4,4.4 v0 h-168.8 v0 a4.4,4.4 0 0 1 4.4,-4.4 z" fill="var(--c-aws)"/><rect x="1033" y="437" width="30" height="30" rx="6" fill="var(--c-aws-s)"/><polyline points="1045,446 1040,452 1045,458" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><polyline points="1051,446 1056,452 1051,458" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><line x1="1049" y1="445" x2="1047" y2="459" fill="none" stroke="var(--c-aws)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><!--ICON:terraform--><!--<image href="../assets/icons/terraform.svg" x="1035" y="439" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>--><text x="1071" y="457" font-family="IBM Plex Sans, system-ui, sans-serif" font-size="12.5" font-weight="600" fill="var(--ink)">Terraform</text><text x="1033" y="483" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.6" fill="var(--muted)">kubernetes provider</text><rect x="1033" y="491" width="58" height="15" rx="3" fill="var(--c-aws-s)"/><text x="1039" y="501.5" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.3" fill="var(--c-aws)">baseline</text></g><line x1="152" y1="154" x2="192" y2="154" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><line x1="284" y1="198" x2="284" y2="276" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><line x1="284" y1="368" x2="284" y2="436" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><line x1="372" y1="324" x2="404" y2="324" stroke="var(--c-ctl)" stroke-width="1.4" marker-end="url(#mctl)" fill="none"/><polyline points="503,280 503,154 676,154" stroke="var(--c-app)" stroke-width="1.6" marker-end="url(#mreq)" fill="none"/><polyline points="765,198 765,231 780,231 780,264" stroke="var(--c-app)" stroke-width="1.6" marker-end="url(#mreq)" fill="none"/><polyline points="372,484 624,484 624,312 676,312" stroke="var(--dg-line)" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#mdata)" fill="none"/><line x1="840" y1="356" x2="840" y2="420" stroke="var(--dg-line)" stroke-width="1.6" marker-end="url(#mdata)" fill="none"/><line x1="1020" y1="468" x2="884" y2="468" stroke="var(--c-aws)" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#maws)" fill="none"/><circle cx="172" cy="154" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="172" y="157.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">1</text><circle cx="284" cy="237" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="284" y="240.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">2</text><circle cx="284" cy="402" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="284" y="405.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">3</text><circle cx="388" cy="324" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="388" y="327.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">4</text><circle cx="589.5" cy="154" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="589.5" y="157.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">5</text><circle cx="765" cy="214.5" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="765" y="217.9" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">6</text><circle cx="498" cy="484" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="498" y="487.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">7</text><circle cx="840" cy="388" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="840" y="391.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">8</text><circle cx="952" cy="468" r="9" fill="var(--dg-box)" stroke="var(--dg-line)" stroke-width="1"/><text x="952" y="471.4" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="9.5" font-weight="500" text-anchor="middle" fill="var(--ink-2)">9</text></svg>
+      </div>
+      <figcaption>The handoff as it ran. Arrow 4 is a Git commit, not a deploy &mdash; that's the whole design. Jenkins's arrows all stop at a registry or a repository, and only ArgoCD (5, 6) reaches into the cluster.</figcaption>
+    </figure>
+
+    <div class="wiring">
+      <div class="panel">
+        <h4>How the components communicate</h4>
+        <table class="wire">
+          <thead><tr><th>No</th><th>From &rarr; to</th><th>Mechanism</th><th>What happens</th></tr></thead>
+          <tbody>
+          <tr><td>1</td><td class="ft">Developer &rarr; devops-pipeline-app</td><td class="mech">git push</td><td>An app change lands in the source repo.</td></tr>
+          <tr><td>2</td><td class="ft">devops-pipeline-app &rarr; Jenkins</td><td class="mech">triggers job</td><td>Starts the Jenkinsfile: build, push, update manifest.</td></tr>
+          <tr><td>3</td><td class="ft">Jenkins &rarr; Docker Hub</td><td class="mech">docker push</td><td>Pushes <code>:BUILD_NUMBER</code> and <code>:latest</code>.</td></tr>
+          <tr><td>4</td><td class="ft">Jenkins &rarr; manifests repo</td><td class="mech">sed + git push</td><td>Rewrites the image tag in <code>k8s/deployment.yaml</code> and commits it as <code>Jenkins CI</code>.</td></tr>
+          <tr><td>5</td><td class="ft">manifests repo &rarr; ArgoCD</td><td class="mech">watched repo</td><td>ArgoCD sees the new commit; this is the only path into the cluster.</td></tr>
+          <tr><td>6</td><td class="ft">ArgoCD &rarr; devops-app × 2</td><td class="mech">rolling update</td><td>Two replicas, <code>maxUnavailable: 1</code>, <code>maxSurge: 1</code>.</td></tr>
+          <tr><td>7</td><td class="ft">Docker Hub &rarr; devops-app × 2</td><td class="mech">image pull</td><td>The kubelet pulls the pinned build-number tag.</td></tr>
+          <tr><td>8</td><td class="ft">devops-app × 2 &rarr; PostgreSQL</td><td class="mech">cluster DNS</td><td><code>postgres-service.database.svc.cluster.local</code>, passed in as <code>DB_HOST</code>.</td></tr>
+          <tr><td>9</td><td class="ft">Terraform &rarr; PostgreSQL</td><td class="mech">terraform apply</td><td>Created the namespaces and PostgreSQL before the pipeline's first run.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="panel">
+          <h4>Legend</h4>
+          <div class="key">
+            <div><i style="background:var(--c-neu)"></i><span><b>Actors &amp; registry</b>developer, Docker Hub</span></div>
+            <div><i style="background:var(--c-ctl)"></i><span><b>Git &amp; CI</b>both repos, Jenkins</span></div>
+            <div><i style="background:var(--c-app)"></i><span><b>Cluster</b>ArgoCD, the app, PostgreSQL</span></div>
+            <div><i style="background:var(--c-aws)"></i><span><b>Provisioning</b>Terraform baseline</span></div>
+            <div><u style="border-color:var(--c-ctl)"></u><span><b>CI flow</b>into Git and the registry</span></div>
+            <div><u style="border-color:var(--c-app)"></u><span><b>Sync / roll</b>Git to cluster</span></div>
+            <div><u style="border-color:var(--dg-line)"></u><span><b>Data path</b>image pull, queries</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h4>What was reachable</h4>
+          <p class="surface"><b>Public &mdash;</b> nothing; there was no ingress or load balancer.<br>
+          <b>Internal &mdash;</b> ArgoCD, the two <code>devops-app</code> pods and PostgreSQL, across two namespaces.<br>
+          <b>Held by CI &mdash;</b> Docker Hub and GitHub credentials. No kubeconfig, which is the point.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What I verified, and how</h2>
+      <p class="h2note">Evidence, separated from design intent</p>
+      <p>Building something and being able to prove it works are different claims, so I've kept them separate below. <strong>Measured</strong> means I created the condition myself and recorded what happened. <strong>Observed</strong> means I looked at the running system and saw the state it was already in. <strong>By design</strong> means the configuration guarantees it, but I didn't run a test against it &mdash; better to say that plainly than dress it up as a result.</p>
+    </div>
+
+    <div class="ledger">
+
+      <div class="v-row observed">
+        <div class="v-tag">Observed</div>
+        <div>
+          <h3>Build #2 went from <code>git push</code> to running pods with no manual step</h3>
+          <p>Jenkins build #2 built the image, pushed it and committed the new tag; ArgoCD picked the commit up and rolled the Deployment. Jenkins's commit landed at 19:04:02 and both new pods were running by 19:06:10 &mdash; about two minutes from manifest commit to running pods, read off the commit time and the pod ages, not a timed benchmark.</p>
+          <p class="v-method"><b>Method</b> Compared the manifests repo commit timestamp against <code>kubectl get pods -n production</code>: 2/2 pods <code>Running</code> 1/1, 0 restarts, 116 seconds old.</p>
+        </div>
+      </div>
+      <div class="v-row observed">
+        <div class="v-tag">Observed</div>
+        <div>
+          <h3>ArgoCD reported <code>Synced</code> and <code>Healthy</code> for both resources</h3>
+          <p><code>argocd app get devops-app</code> showed the Deployment and the Service both <code>Synced</code> and <code>Healthy</code>, with the manifest pinning <code>devops-pipeline-app:2</code> rather than <code>:latest</code>.</p>
+          <p class="v-method"><b>Method</b> Ran <code>argocd app get devops-app</code> after the rollout.</p>
+        </div>
+      </div>
+      <div class="v-row observed">
+        <div class="v-tag">Observed</div>
+        <div>
+          <h3>The app reached PostgreSQL &mdash; under Compose</h3>
+          <p><code>curl localhost:5000/health</code> returned <code>{"database":"connected","status":"healthy"}</code> when I ran the stack under Docker Compose. In the cluster I saw Terraform's Postgres pod <code>Running</code> with 0 restarts, but the health response itself was captured under Compose, so that's where I'm claiming it.</p>
+          <p class="v-method"><b>Method</b> <code>curl</code> against <code>/health</code> under Docker Compose; <code>kubectl get pods -n database</code> in the cluster.</p>
+        </div>
+      </div>
+      <div class="v-row design">
+        <div class="v-tag">By design</div>
+        <div>
+          <h3>CI holds no cluster credentials</h3>
+          <p>Jenkins's credential store has Docker Hub and GitHub entries and no kubeconfig, and the pipeline never calls <code>kubectl</code> or the ArgoCD API. A compromised build could push a bad tag to Git, which shows up in review history &mdash; it couldn't write to the cluster directly. I didn't try to break out of a job to prove it.</p>
+          <p class="v-method"><b>Method</b> Reviewed the <code>Jenkinsfile</code> and the Jenkins credentials. Not adversarially tested.</p>
+        </div>
+      </div>
+      <div class="v-row design">
+        <div class="v-tag">By design</div>
+        <div>
+          <h3><code>/health</code> fails when the database is gone &mdash; untested in the cluster</h3>
+          <p><code>/health</code> runs <code>SELECT 1</code> and returns <code>500</code> on failure, which is what a readiness probe needs to pull a pod out of the Service. I didn't take PostgreSQL down in the cluster to watch the endpoints change.</p>
+          <p class="v-method"><b>Method</b> Read the handler. No outage was simulated.</p>
+        </div>
+      </div>
+
+    </div>
+    <p class="legend">Five claims. three observed, two stated as design properties rather than dressed up as results.</p>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Proof</h2>
+      <p class="h2note">From the running cluster and the pipeline</p>
+    </div>
+    <div class="shots">
+      <figure>
+        <img loading="lazy" alt="ArgoCD devops-app tree: Synced to 6c083e8, app health Progressing, both pods in ErrImagePull" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/kubernetes/devops-pipeline/Screenshots/Screenshot%20from%202026-09-10%2017-09-37.png">
+        <figcaption>Synced, not healthy: the first manifest pointed at an image that didn't exist yet.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="kubectl get pods -n production: two devops-app pods Running 1/1 with 0 restarts, 116s old" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/kubernetes/devops-pipeline/Screenshots/Screenshot%20from%202026-09-10%2019-08-06.png">
+        <figcaption>Build #2 rolled out by Jenkins and ArgoCD: 2/2 running, 0 restarts.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="argocd app get devops-app: Deployment and Service both Synced and Healthy" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/kubernetes/devops-pipeline/Screenshots/Screenshot%20from%202026-09-10%2019-27-46.png">
+        <figcaption>ArgoCD: Deployment and Service both <code>Synced</code> and <code>Healthy</code>.</figcaption>
+      </figure>
+      <figure>
+        <img loading="lazy" alt="curl localhost:5000/health returning database connected, status healthy" src="https://raw.githubusercontent.com/kingswanzy2020/Projects/main/kubernetes/devops-pipeline/Screenshots/Screenshot%20from%202026-09-10%2015-39-32.png">
+        <figcaption>The API reaching Postgres under Compose.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>What actually broke</h2>
+      <p class="h2note">Two failures worth keeping</p>
+      <div class="broke">
+        <article>
+          <h3>ArgoCD said <code>Synced</code> while every pod was failing</h3>
+          <p>The first manifest commit pointed at <code>ahmed3015/devops-pipeline-app:latest</code> before Jenkins had pushed any image. ArgoCD applied it without complaint and showed <strong>Synced</strong> to <code>6c083e8</code>, while app health sat at <strong>Progressing</strong> and both pods were stuck in <code>ErrImagePull</code>. Synced only means the cluster matches Git; Health is what tells you whether the workload runs. Re-syncing couldn't fix it &mdash; the pipeline had to deliver a real image first.</p>
+        </article>
+        <article>
+          <h3>Build #1 failed on a template placeholder nobody replaced</h3>
+          <p>The Jenkinsfile was committed with <code>DOCKER_IMAGE = "[[DOCKERHUB_USERNAME=\"ahmed3015\"]]/devops-pipeline-app"</code>. Docker rejects brackets in an image name, so the build died before pushing anything. Once it read <code>ahmed3015/devops-pipeline-app</code>, build #2 went all the way through &mdash; which is why the first tag in the manifests repo is <code>:2</code>, not <code>:1</code>.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="col">
+      <h2>Source</h2>
+      <p class="h2note">Everything on this page came from here</p>
+      <div class="src">
+        <p>The pipeline is split across two repos, the same way the design is. <a href="https://github.com/kingswanzy2020/devops-pipeline-app">kingswanzy2020/devops-pipeline-app</a> has the Flask + PostgreSQL API, the multi-stage <code>Dockerfile</code>, the <code>Jenkinsfile</code>, <code>docker-compose.yml</code> and <code>terraform/main.tf</code>. <a href="https://github.com/kingswanzy2020/devops-pipeline-manifests">kingswanzy2020/devops-pipeline-manifests</a> has the Deployment and Service ArgoCD watches and Jenkins commits to.</p>
+        <pre>git clone https://github.com/kingswanzy2020/devops-pipeline-app.git
+git clone https://github.com/kingswanzy2020/devops-pipeline-manifests.git</pre>
+      </div>
+      <p class="stack"><b>Stack</b><br>Jenkins &middot; ArgoCD &middot; GitOps &middot; Kubernetes &middot; Terraform (kubernetes provider) &middot; Docker multi-stage builds &middot; Docker Hub &middot; Flask &middot; Gunicorn &middot; PostgreSQL &middot; rolling updates &middot; cross-namespace service discovery &middot; build-numbered image tags</p>
+    </div>
+  </section>
+
+  <nav class="next" aria-label="More case studies">
+    <a href="../argocd-pipeline/"><small>&larr; Previous</small>GitOps deployment pipeline with ArgoCD</a>
+    <a class="r" href="../helm-cicd-monitoring/"><small>Next &rarr;</small>Kubernetes CI/CD with Helm and monitoring</a>
+  </nav>
+
+  <footer class="col">
+    Ahmed Tetteh &middot; <a href="mailto:kingsleyswanzy@gmail.com">kingsleyswanzy@gmail.com</a> &middot; <a href="https://github.com/kingswanzy2020">github.com/kingswanzy2020</a> &middot; <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a><br>
+    Static HTML and CSS. No JavaScript, no framework, no build step for the page itself.
+  </footer>
+
+</div>
+</body>
+</html>

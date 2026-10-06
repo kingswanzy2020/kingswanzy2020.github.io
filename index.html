@@ -3,301 +3,421 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Ahmed Tetteh — DevOps / Platform Engineer. Case studies in Kubernetes, Terraform, GitOps and observability.">
-<title>Ahmed Tetteh</title>
+<title>Ahmed Tetteh &mdash; DevOps, Platform &amp; SRE Engineer</title>
+<meta name="description" content="Ahmed Tetteh is a freelance DevOps, platform and SRE engineer (CKA, AWS SAA) in Daejeon, South Korea. 29 case studies in Kubernetes, GitOps, Terraform, AWS, observability and AI for operations, each separating what was measured from what was designed.">
+<meta property="og:title" content="Ahmed Tetteh &mdash; DevOps, Platform &amp; SRE Engineer">
+<meta property="og:description" content="Kubernetes, GitOps, Terraform, AWS and AI-assisted operations &mdash; 29 case studies, written up with what was measured and what broke.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://kingswanzy2020.github.io/">
+<meta name="theme-color" content="#0b1220">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap">
-<style>
-:root{
-  --ground:#EEF0F1; --surface:#FFFFFF; --surface-2:#F5F8F8;
-  --ink:#11181B; --ink-2:#3B464C; --muted:#6A767D;
-  --rule:#D3D9DC; --rule-strong:#B5BEC3;
-  --accent:#1B5E58; --accent-soft:#DDEBE8;
-  --flag:#8A5512; --flag-soft:#F7EBD9;
-  --dg-line:#6A767D; --dg-text:#3B464C; --dg-box:#FFFFFF; --dg-stroke:#B5BEC3;
-  --c-aws:#A8620F; --c-aws-s:#F7ECDD; --c-ctl:#2E5FC4; --c-ctl-s:#E3EAFA;
-  --c-app:#1B7A4F; --c-app-s:#DFEFE7; --c-obs:#1B5E58; --c-obs-s:#DDEBE8;
-  --c-neu:#5C686F; --c-neu-s:#EAEEEF;
-  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --serif:"IBM Plex Serif",Georgia,"Times New Roman",serif;
-  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-  --ground:#0C1214; --surface:#131B1E; --surface-2:#182226;
-  --ink:#E7ECEC; --ink-2:#BFC9CC; --muted:#8A989D;
-  --rule:#223034; --rule-strong:#32444A;
-  --accent:#66C6B8; --accent-soft:#12302D;
-  --flag:#E0A959; --flag-soft:#2E220E;
-  --dg-line:#8A989D; --dg-text:#BFC9CC; --dg-box:#182226; --dg-stroke:#32444A;
-  --c-aws:#E0A959; --c-aws-s:#2E2210; --c-ctl:#7BA3EE; --c-ctl-s:#17243D;
-  --c-app:#4FC28C; --c-app-s:#102A1F; --c-obs:#66C6B8; --c-obs-s:#12302D;
-  --c-neu:#9AA7AD; --c-neu-s:#1C262A;
-  }
-}
-:root[data-theme="dark"]{
-  --ground:#0C1214; --surface:#131B1E; --surface-2:#182226;
-  --ink:#E7ECEC; --ink-2:#BFC9CC; --muted:#8A989D;
-  --rule:#223034; --rule-strong:#32444A;
-  --accent:#66C6B8; --accent-soft:#12302D;
-  --flag:#E0A959; --flag-soft:#2E220E;
-  --dg-line:#8A989D; --dg-text:#BFC9CC; --dg-box:#182226; --dg-stroke:#32444A;
-  --c-aws:#E0A959; --c-aws-s:#2E2210; --c-ctl:#7BA3EE; --c-ctl-s:#17243D;
-  --c-app:#4FC28C; --c-app-s:#102A1F; --c-obs:#66C6B8; --c-obs-s:#12302D;
-  --c-neu:#9AA7AD; --c-neu-s:#1C262A;
-}
-
-*{box-sizing:border-box}
-body{
-  background:var(--ground); color:var(--ink);
-  font-family:var(--serif); font-size:17px; line-height:1.62;
-  margin:0; padding-block:0 64px;
-  -webkit-font-smoothing:antialiased;
-}
-.wrap{max-width:1060px; margin-inline:auto; padding-inline:24px}
-.col{max-width:68ch; margin-inline:auto}
-
-/* ---------- identity bar ---------- */
-.bar{
-  border-bottom:1px solid var(--rule); background:var(--surface);
-  font-family:var(--mono); font-size:12px; letter-spacing:.02em;
-}
-.bar .wrap{display:flex; flex-wrap:wrap; gap:8px 20px; align-items:baseline;
-  padding-block:13px; justify-content:space-between}
-.bar b{font-family:var(--sans); font-weight:600; font-size:13.5px; letter-spacing:0}
-.bar .who{display:flex; flex-wrap:wrap; gap:8px 14px; align-items:baseline}
-.bar .who span{color:var(--muted)}
-.bar nav{display:flex; gap:14px}
-.bar a{color:var(--ink-2); text-decoration:none; border-bottom:1px solid var(--rule-strong)}
-.bar a:hover{color:var(--accent); border-color:var(--accent)}
-
-/* ---------- masthead ---------- */
-header.mast{padding-block:52px 0}
-.eyebrow{font-family:var(--mono); font-size:11.5px; text-transform:uppercase;
-  letter-spacing:.13em; color:var(--muted); margin:0 0 14px}
-h1{font-family:var(--sans); font-weight:600; font-size:clamp(30px,5.2vw,42px);
-  line-height:1.14; letter-spacing:-.018em; margin:0; text-wrap:balance}
-.standfirst{font-size:19px; color:var(--ink-2); margin:18px 0 0}
-
-/* ---------- status ---------- */
-.status{
-  margin:30px 0 0; padding:16px 18px;
-  background:var(--flag-soft); border-left:3px solid var(--flag);
-  font-size:15.5px; line-height:1.55;
-}
-.status .chip{
-  display:inline-block; font-family:var(--mono); font-size:11px; font-weight:500;
-  text-transform:uppercase; letter-spacing:.11em; color:var(--flag);
-  margin-right:10px;
-}
-.status p{margin:6px 0 0; color:var(--ink-2)}
-
-/* ---------- spec sheet ---------- */
-.spec{
-  margin:34px 0 0; border-top:1px solid var(--rule-strong); border-bottom:1px solid var(--rule);
-  display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr));
-}
-.spec div{padding:14px 18px 15px 0; border-bottom:1px solid var(--rule)}
-.spec dt{font-family:var(--mono); font-size:10.5px; text-transform:uppercase;
-  letter-spacing:.12em; color:var(--muted); margin-bottom:5px}
-.spec dd{margin:0; font-family:var(--sans); font-size:14.5px; font-weight:500;
-  line-height:1.4; color:var(--ink)}
-
-/* ---------- sections ---------- */
-section{padding-block:44px 0}
-h2{font-family:var(--sans); font-weight:600; font-size:22px; letter-spacing:-.01em;
-  margin:0 0 4px; text-wrap:balance}
-.h2note{font-family:var(--mono); font-size:11.5px; text-transform:uppercase;
-  letter-spacing:.12em; color:var(--muted); margin:0 0 20px}
-p{margin:0 0 17px}
-p:last-child{margin-bottom:0}
-code{font-family:var(--mono); font-size:.85em; background:var(--surface-2);
-  border-radius:2px; padding:.5px 4px; color:var(--ink)}
-a{color:var(--accent)}
-strong{font-weight:600; color:var(--ink)}
-.serif-em{font-style:italic}
-
-/* ---------- figure ---------- */
-figure{margin:0}
-.fig{margin-top:26px}
-.fig-scroll{overflow-x:auto; background:var(--surface);
-  border:1px solid var(--rule); border-radius:3px; padding:20px 16px}
-.fig-scroll svg{display:block; width:100%; min-width:1044px; max-width:none; height:auto}
-@media (min-width:1240px){ .fig{margin-inline:-82px} }
-
-/* ---------- wiring table + panels ---------- */
-.wiring{display:grid; grid-template-columns:minmax(0,1fr) 292px; gap:20px; margin-top:20px}
-.panel{background:var(--surface); border:1px solid var(--rule); border-radius:3px; padding:16px 18px}
-.panel h4{font-family:var(--mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.12em;
-  color:var(--muted); font-weight:500; margin:0 0 12px}
-.panel+.panel{margin-top:20px}
-table.wire{width:100%; border-collapse:collapse; font-family:var(--mono); font-size:11.5px;
-  line-height:1.5; font-variant-numeric:tabular-nums}
-table.wire th{text-align:left; font-weight:500; font-size:9.8px; text-transform:uppercase;
-  letter-spacing:.11em; color:var(--muted); padding:0 12px 8px 0; border-bottom:1px solid var(--rule)}
-table.wire td{padding:9px 12px 9px 0; border-bottom:1px solid var(--rule); vertical-align:top; color:var(--ink-2)}
-table.wire tr:last-child td{border-bottom:none}
-table.wire td:first-child{color:var(--muted); width:26px; padding-right:8px}
-table.wire td.ft{color:var(--ink); white-space:nowrap}
-table.wire td.mech{color:var(--muted); white-space:nowrap}
-.key{display:grid; gap:9px; font-family:var(--mono); font-size:11px; color:var(--ink-2); line-height:1.45}
-.key div{display:grid; grid-template-columns:30px 1fr; gap:10px; align-items:start}
-.key i{display:block; height:9px; border-radius:2px; margin-top:3px}
-.key u{display:block; height:0; border-top-width:2px; border-top-style:solid; margin-top:7px}
-.key span b{display:block; color:var(--ink); font-weight:500}
-.surface{font-family:var(--mono); font-size:11.5px; line-height:1.7; color:var(--ink-2); margin:0}
-.surface b{color:var(--ink); font-weight:500}
-@media (max-width:900px){ .wiring{grid-template-columns:1fr} }
-figcaption{font-family:var(--mono); font-size:12px; line-height:1.55; color:var(--muted);
-  margin-top:11px}
-
-/* ---------- verification ledger ---------- */
-.ledger{margin-top:8px; border-top:1px solid var(--rule-strong)}
-.v-row{
-  display:grid; grid-template-columns:118px 1fr; gap:0 22px;
-  padding:20px 0 20px 16px; border-bottom:1px solid var(--rule);
-  border-left:2px solid var(--rule-strong);
-}
-.v-row.measured{border-left-color:var(--accent)}
-.v-row.observed{border-left-color:var(--ink-2)}
-.v-row.design{border-left-color:var(--rule-strong)}
-.v-tag{font-family:var(--mono); font-size:10.5px; font-weight:500; text-transform:uppercase;
-  letter-spacing:.1em; color:var(--muted); padding-top:5px}
-.v-row.measured .v-tag{color:var(--accent)}
-.v-row.observed .v-tag{color:var(--ink-2)}
-.v-row h3{font-family:var(--sans); font-weight:600; font-size:16.5px; line-height:1.35;
-  margin:0 0 8px; letter-spacing:-.005em}
-.v-row p{font-size:16px; margin:0 0 10px}
-.v-method{font-family:var(--mono); font-size:12.5px; line-height:1.6;
-  color:var(--ink-2); margin:0 !important;
-  padding:9px 12px; background:var(--surface-2); border:1px solid var(--rule); border-radius:2px}
-.v-method code{background:none; padding:0; font-size:1em; color:var(--ink)}
-.v-method b{color:var(--muted); font-weight:500; text-transform:uppercase;
-  letter-spacing:.09em; font-size:10.5px; margin-right:8px}
-.legend{font-family:var(--mono); font-size:11.5px; color:var(--muted);
-  margin:16px 0 0; line-height:1.7}
-
-/* ---------- proof grid ---------- */
-.shots{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
-  gap:24px; margin-top:24px}
-.shots figure{background:var(--surface); border:1px solid var(--rule);
-  border-radius:3px; padding:10px 10px 0}
-.shots img{display:block; width:100%; height:auto; border:1px solid var(--rule); border-radius:2px}
-.shots figcaption{padding:0 2px 12px}
-
-/* ---------- broke ---------- */
-.broke{margin-top:22px; display:grid; gap:22px}
-.broke article{border-left:2px solid var(--rule-strong); padding-left:16px}
-.broke h3{font-family:var(--mono); font-size:13.5px; font-weight:500; line-height:1.5;
-  margin:0 0 9px; color:var(--ink)}
-
-/* ---------- source ---------- */
-.src{margin-top:24px; padding:18px 20px; background:var(--surface);
-  border:1px solid var(--rule); border-radius:3px}
-.src p{font-size:16px}
-.src p code{background:none;padding:0}
-.src pre{font-family:var(--mono); font-size:12.5px; margin:14px 0 0; padding:11px 13px;
-  background:var(--surface-2); border:1px solid var(--rule); border-radius:2px;
-  overflow-x:auto; color:var(--ink-2)}
-.stack{font-family:var(--mono); font-size:12px; line-height:2; color:var(--muted);
-  margin-top:22px; padding-top:18px; border-top:1px solid var(--rule)}
-.stack b{color:var(--ink-2); font-weight:400}
-
-footer{margin-top:52px; padding-top:20px; border-top:1px solid var(--rule);
-  font-family:var(--mono); font-size:11.5px; line-height:1.9; color:var(--muted)}
-footer a{color:var(--ink-2)}
-
-a:focus-visible,button:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
-@media (max-width:560px){
-  body{font-size:16px}
-  .v-row{grid-template-columns:1fr; gap:10px; padding-left:14px}
-  .v-tag{padding-top:0}
-  .spec div{padding-right:0}
-}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-
-/* ---------- landing page ---------- */
-.landing-hero{padding-block:56px 0}
-.lh-top{display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:12px}
-.lh-top h1{font-size:clamp(32px,6vw,46px)}
-.lh-top nav{display:flex; gap:14px; font-family:var(--mono); font-size:13px}
-.lh-top nav a{color:var(--ink-2); text-decoration:none; border-bottom:1px solid var(--rule-strong)}
-.lh-top nav a:hover{color:var(--accent); border-color:var(--accent)}
-.lh-tagline{font-size:19px; color:var(--ink-2); margin:14px 0 0}
-.lh-certs{display:flex; gap:10px; flex-wrap:wrap; margin-top:18px}
-.lh-certs span{font-family:var(--mono); font-size:11.5px; letter-spacing:.04em; color:var(--ink-2);
-  background:var(--surface-2); border:1px solid var(--rule); border-radius:3px; padding:6px 10px}
-
-.cards{margin-top:44px; display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:18px; padding-bottom:8px}
-.card{display:block; text-decoration:none; color:inherit; background:var(--surface); border:1px solid var(--rule);
-  border-left:3px solid var(--card-c); border-radius:3px; padding:20px 20px 18px; transition:border-color .15s}
-.card:hover{border-color:var(--card-c)}
-.card-eyebrow{font-family:var(--mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; color:var(--card-c); margin:0 0 10px}
-.card h2{font-family:var(--sans); font-weight:600; font-size:18px; line-height:1.3; margin:0 0 10px; color:var(--ink); text-wrap:balance}
-.card-desc{font-size:14.5px; line-height:1.5; color:var(--ink-2); margin:0 0 16px}
-.card-status{font-family:var(--mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:0}
-.landing-footer{margin-top:52px; padding-top:20px; border-top:1px solid var(--rule);
-  font-family:var(--mono); font-size:11.5px; line-height:1.9; color:var(--muted)}
-.landing-footer a{color:var(--ink-2)}
-@media (max-width:560px){.lh-top{flex-direction:column; align-items:flex-start}}
-
-</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/site.css">
 </head>
 <body>
-<div class="wrap">
+<a class="skip" href="#content">Skip to content</a>
+<div class="layout">
 
-  <header class="landing-hero">
-    <div class="lh-top">
+  <header class="side">
+    <div>
+      <span class="avatar lg" role="img" aria-label="Photo of Ahmed Tetteh">AT</span>
       <h1>Ahmed Tetteh</h1>
-      <nav>
-        <a href="https://github.com/kingswanzy2020">GitHub</a>
-        <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a>
-        <a href="mailto:kingsleyswanzy@gmail.com">Email</a>
+      <p class="role">DevOps, Platform &amp; SRE Engineer</p>
+      <p class="tag">I build infrastructure that's automated, observable and secure by default &mdash; and I write down what I actually proved.</p>
+      <span class="pill-status"><i aria-hidden="true"></i>Freelancing &middot; open to roles</span>
+      <div class="meta"><span>Daejeon, South Korea</span><span>Remote or relocation</span><span>CKA &middot; AWS SAA</span></div>
+      <nav class="toc" aria-label="Sections">
+        <ol>
+          <li><a href="#about"><span class="l"></span>About</a></li>
+          <li><a href="#experience"><span class="l"></span>Experience</a></li>
+          <li><a href="#toolbox"><span class="l"></span>Toolbox</a></li>
+          <li><a href="#work"><span class="l"></span>Selected work</a></li>
+          <li><a href="#archive"><span class="l"></span>All 29 case studies</a></li>
+          <li><a href="#certifications"><span class="l"></span>Certifications</a></li>
+          <li><a href="#contact"><span class="l"></span>Contact</a></li>
+        </ol>
       </nav>
     </div>
-    <p class="lh-tagline">DevOps / Platform Engineer &mdash; Kubernetes, Terraform, GitOps, AWS.</p>
-    <div class="lh-certs">
-      <span>CKA &mdash; Certified Kubernetes Administrator</span>
-      <span>AWS Certified Solutions Architect &ndash; Associate</span>
+    <div class="social">
+      <a href="https://github.com/kingswanzy2020" aria-label="GitHub"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
+      <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.94v5.67H9.36V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 110-4.12 2.06 2.06 0 010 4.12zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0z"/></svg></a>
+      <a href="mailto:kingsleyswanzy@gmail.com" aria-label="Email"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6l8.5 7 8.5-7"/></svg></a>
+      <a href="https://github.com/kingswanzy2020/Projects" aria-label="All projects on GitHub"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></a>
     </div>
   </header>
 
-  <div class="cards">
-    <a class="card" href="eks/" style="--card-c:var(--c-app)">
-      <p class="card-eyebrow">Kubernetes</p>
-      <h2>Production application on Amazon EKS</h2>
-      <p class="card-desc">A three-tier app on a two-node cluster &mdash; DNS, TLS, storage and autoscaling all provisioned by controllers, not by hand.</p>
-      <p class="card-status">Decommissioned</p>
-    </a>
-    <a class="card" href="terraform-gitops/" style="--card-c:var(--c-aws)">
-      <p class="card-eyebrow">Infrastructure as Code</p>
-      <h2>Terraform GitOps pipeline on AWS</h2>
-      <p class="card-desc">A five-module AWS stack where every change is a plan on PR, applied only on merge, authenticated via OIDC.</p>
-      <p class="card-status">Decommissioned</p>
-    </a>
-    <a class="card" href="argocd-pipeline/" style="--card-c:var(--c-ctl)">
-      <p class="card-eyebrow">Kubernetes / GitOps</p>
-      <h2>GitOps deployment pipeline with ArgoCD</h2>
-      <p class="card-desc">A cluster that reverts manual changes within seconds &mdash; Git is the only way anything gets in.</p>
-      <p class="card-status">Decommissioned</p>
-    </a>
-    <a class="card" href="fastapi-react/" style="--card-c:var(--c-neu)">
-      <p class="card-eyebrow">Kubernetes / CI/CD</p>
-      <h2>A FastAPI + React template, from compose to Kubernetes</h2>
-      <p class="card-desc">Terraform, Ansible, one Helm chart and a pipeline around an existing app &mdash; then a broken release shipped on purpose, which never took traffic.</p>
-      <p class="card-status">Decommissioned</p>
-    </a>
-    <a class="card" href="delivery-scoreboard/" style="--card-c:var(--c-obs)">
-      <p class="card-eyebrow">Observability / Data</p>
-      <h2>DORA delivery scoreboard with DuckDB</h2>
-      <p class="card-desc">Four metrics computed in SQL; a fifth withheld until an AI classifier's labels pass an 18/20 accuracy gate.</p>
-      <p class="card-status">Local script</p>
-    </a>
-  </div>
+  <main class="main" id="content">
 
-  <footer class="landing-footer">
-    Ahmed Tetteh &middot; <a href="mailto:kingsleyswanzy@gmail.com">kingsleyswanzy@gmail.com</a> &middot; <a href="https://github.com/kingswanzy2020">github.com/kingswanzy2020</a> &middot; <a href="https://www.linkedin.com/in/ahmed-tetteh-76a538126/">LinkedIn</a>
-  </footer>
+    <section id="about" class="about" aria-label="About">
+      <h2 class="sec-h only-mobile">About</h2>
+      <p>&#128075; Hi, I'm Ahmed &mdash; a DevOps and platform engineer based in Daejeon, South Korea. Right now I'm freelancing, taking on <strong>SRE, platform and DevOps-AI</strong> work: Kubernetes clusters, GitOps and Terraform pipelines on AWS, observability, and tooling that lets an LLM help during an incident without being trusted blindly.</p>
+      <p>I came to this through networks. My first engineering job was keeping production network infrastructure up for enterprise clients in Ghana &mdash; releases, on-call and root-cause analysis, before I knew to call it SRE. Then I moved to Korea for an MSc in telecommunications and spent two years as a research assistant in a radar-sensing lab, where debugging RF hardware one layer at a time turned out to be excellent practice for debugging distributed systems.</p>
+      <p>I'm a <a href="https://www.credly.com/badges/8717d9d9-a9ab-422e-a463-54a24d626c1a/public_url">Certified Kubernetes Administrator</a> and an <a href="https://www.credly.com/badges/c33ee367-fc26-4d1a-acff-ef4eb7feb159/public_url">AWS Solutions Architect &ndash; Associate</a>. Every project on this page is written up the same way: what I built, what I <em>measured</em>, what I only <em>observed</em>, what holds only <em>by design</em> &mdash; and what broke. I'd rather show you the 403s than pretend they didn't happen.</p>
+      <p>I'm open to freelance engagements and full-time roles, remote or with relocation.</p>
+    </section>
+
+    <section id="experience" aria-label="Experience">
+      <h2 class="sec-h">Experience</h2>
+      <ol class="list">
+        <li class="item">
+          <div class="when">2025 &mdash; Now</div>
+          <div>
+            <h3>Freelance DevOps, Platform &amp; SRE Engineer <span class="co">&middot; Independent</span></h3>
+            <p class="sub">Remote &middot; Daejeon, South Korea</p>
+            <p>Taking on SRE, platform and DevOps-AI work: Kubernetes platforms and GitOps delivery, Terraform on AWS, observability with Prometheus and Grafana, and LLM-assisted tooling for incident response and code review. Alongside client work I build in public &mdash; every project in the archive below is written up with what I measured, what I only observed, and what broke.</p>
+            <ul class="pills"><li>Kubernetes</li><li>ArgoCD</li><li>Terraform</li><li>AWS</li><li>Prometheus</li><li>Python</li></ul>
+          </div>
+        </li>
+        <li class="item">
+          <div class="when">2023 &mdash; 2025</div>
+          <div>
+            <h3>Graduate Research Assistant <span class="co">&middot; Hanbat National University</span></h3>
+            <p class="sub">Intelligent Antenna &amp; Radar Sensing Lab &middot; Daejeon, South Korea</p>
+            <ul><li>Designed and optimised complex telecommunications systems with systematic, data-driven methods.</li><li>Diagnosed failures across RF hardware, instrumentation and software toolchains &mdash; isolating one layer at a time, the same method I use on distributed systems.</li><li>Worked with international, multidisciplinary teams across time zones; wrote the documentation and presented findings to faculty and external stakeholders.</li></ul>
+            <ul class="pills"><li>Research</li><li>Instrumentation</li><li>Debugging</li><li>Technical writing</li></ul>
+          </div>
+        </li>
+        <li class="item">
+          <div class="when">2020 &mdash; 2021</div>
+          <div>
+            <h3>Network Systems Engineer <span class="co">&middot; K-NET Limited</span></h3>
+            <p class="sub">Telecommunications infrastructure &middot; Accra, Ghana</p>
+            <ul><li>Deployed and maintained production network infrastructure for enterprise clients across distributed sites, sustaining 99% service availability.</li><li>Managed infrastructure releases and configuration changes; carried on-call production support with root-cause analysis &mdash; an SRE rotation before I knew to call it that.</li><li>Configured IP addressing, subnetting, VLAN segmentation and OSPF/BGP routing, and integrated IoT devices for remote fuel-level monitoring across sites.</li></ul>
+            <ul class="pills"><li>OSPF / BGP</li><li>VLANs</li><li>On-call</li><li>IoT</li></ul>
+          </div>
+        </li>
+        <li class="item">
+          <div class="when">2019</div>
+          <div>
+            <h3>IT Technician (Internship) <span class="co">&middot; The Multimedia Group Ltd.</span></h3>
+            <p class="sub">Accra, Ghana</p>
+            <p>Deployed and configured workstations, operating systems and network devices across office and retail sites; owned Tier 1&ndash;2 escalations and the full PC lifecycle through a hardware refresh, under peak business-hour pressure.</p>
+            <ul class="pills"><li>Endpoints</li><li>Networking</li><li>Support</li></ul>
+          </div>
+        </li>
+      </ol>
+      <ul class="edu" aria-label="Education" style="margin-top:28px">
+        <li><span class="when">2025</span><span><b>MSc, Electrical Engineering (Telecommunications)</b>Hanbat National University, Daejeon, South Korea</span></li>
+        <li><span class="when">2020</span><span><b>BSc, Telecommunication Engineering</b>Kwame Nkrumah University of Science and Technology, Kumasi, Ghana</span></li>
+      </ul>
+    </section>
+
+    <section id="toolbox" aria-label="Toolbox">
+      <h2 class="sec-h">Toolbox</h2>
+      <div class="toolbox">
+        <div><h3>Containers &amp; orchestration</h3><ul class="pills"><li>Kubernetes (CKA)</li><li>EKS</li><li>Helm</li><li>Kustomize</li><li>ArgoCD</li><li>Operators</li><li>Docker</li></ul></div>
+        <div><h3>Infrastructure as code</h3><ul class="pills"><li>Terraform</li><li>Ansible</li><li>CloudFormation</li><li>Checkov</li><li>TFLint</li></ul></div>
+        <div><h3>CI/CD</h3><ul class="pills"><li>GitHub Actions</li><li>Jenkins</li><li>CodePipeline</li><li>SonarQube</li><li>Trivy</li><li>Renovate</li></ul></div>
+        <div><h3>Observability</h3><ul class="pills"><li>Prometheus</li><li>Grafana</li><li>CloudWatch</li><li>Fluent Bit</li><li>DuckDB</li></ul></div>
+        <div><h3>AWS</h3><ul class="pills"><li>EKS</li><li>EC2</li><li>VPC</li><li>IAM</li><li>S3</li><li>RDS / Aurora</li><li>Lambda</li><li>Route 53</li><li>CloudFront</li></ul></div>
+        <div><h3>Security</h3><ul class="pills"><li>IAM least privilege</li><li>OIDC federation</li><li>RBAC</li><li>Sealed Secrets</li><li>permissions boundaries</li></ul></div>
+        <div><h3>AI for operations</h3><ul class="pills"><li>Ollama</li><li>Gemini API</li><li>RAG</li><li>MCP</li><li>LLM output gating</li></ul></div>
+        <div><h3>Languages &amp; networking</h3><ul class="pills"><li>Python</li><li>Bash</li><li>Linux</li><li>NGINX</li><li>TCP/IP</li><li>OSPF / BGP</li></ul></div>
+      </div>
+    </section>
+
+    <section id="work" aria-label="Selected work">
+      <h2 class="sec-h">Selected work</h2>
+      <ol class="list">
+        <li class="item has-thumb">
+          <img class="thumb" loading="lazy" src="assets/thumbs/fastapi-react.jpg" alt="" width="150" height="94">
+          <div>
+            <p class="eyebrow-s">Kubernetes &middot; Decommissioned</p>
+            <h3><a href="fastapi-react/">A FastAPI + React template, from compose to Kubernetes<span class="arr" aria-hidden="true">&#8599;</span></a></h3>
+            <p>Terraform, Ansible, one Helm chart and a pipeline around an existing app &mdash; then a broken release shipped on purpose, which never took traffic.</p>
+            <p class="proof">A broken release never took traffic &middot; HPA 2 &rarr; 4 &rarr; 6 in about a minute</p>
+            <ul class="pills"><li>Kubernetes</li><li>Helm</li><li>Terraform</li><li>Ansible</li><li>GitHub Actions</li></ul>
+          </div>
+        </li>
+        <li class="item has-thumb">
+          <img class="thumb" loading="lazy" src="assets/thumbs/eks.jpg" alt="" width="150" height="94">
+          <div>
+            <p class="eyebrow-s">Kubernetes &middot; Decommissioned</p>
+            <h3><a href="eks/">Production application on Amazon EKS<span class="arr" aria-hidden="true">&#8599;</span></a></h3>
+            <p>A three-tier app on a two-node cluster &mdash; DNS, TLS, storage and autoscaling all provisioned by controllers, not by hand.</p>
+            <p class="proof">TLS, DNS and ALB with zero console clicks &middot; HPA 2 &rarr; 3 at 60% CPU</p>
+            <ul class="pills"><li>Amazon EKS</li><li>Helm</li><li>cert-manager</li><li>IRSA</li><li>HPA</li></ul>
+          </div>
+        </li>
+        <li class="item has-thumb">
+          <img class="thumb" loading="lazy" src="assets/thumbs/gitops-5g-core.jpg" alt="" width="150" height="94">
+          <div>
+            <p class="eyebrow-s">Kubernetes &middot; Local cluster</p>
+            <h3><a href="gitops-5g-core/">A GitOps-driven 5G core on Kubernetes<span class="arr" aria-hidden="true">&#8599;</span></a></h3>
+            <p>Open5GS reconciled by an Operator from Git: a new network slice is a two-line commit, synced about two minutes later.</p>
+            <p class="proof">New network slice: commit &rarr; synced in ~2 minutes</p>
+            <ul class="pills"><li>ArgoCD</li><li>Operators</li><li>Open5GS</li><li>Kustomize</li><li>Prometheus</li></ul>
+          </div>
+        </li>
+        <li class="item has-thumb">
+          <img class="thumb" loading="lazy" src="assets/thumbs/ai-incident-response.jpg" alt="" width="150" height="94">
+          <div>
+            <p class="eyebrow-s">AI &times; Ops &middot; Local cluster</p>
+            <h3><a href="ai-incident-response/">AI log analysis and incident response<span class="arr" aria-hidden="true">&#8599;</span></a></h3>
+            <p>Fluent Bit ships errors to a local LLM; each new error signature becomes one GitHub issue with a root cause and a kubectl fix.</p>
+            <p class="proof">One GitHub issue per error signature, not per log line</p>
+            <ul class="pills"><li>Fluent Bit</li><li>Ollama</li><li>Redis</li><li>FastAPI</li></ul>
+          </div>
+        </li>
+        <li class="item has-thumb">
+          <img class="thumb" loading="lazy" src="assets/thumbs/terraform-gitops.jpg" alt="" width="150" height="94">
+          <div>
+            <p class="eyebrow-s">IaC &middot; Decommissioned</p>
+            <h3><a href="terraform-gitops/">Terraform GitOps pipeline on AWS<span class="arr" aria-hidden="true">&#8599;</span></a></h3>
+            <p>A five-module AWS stack where every change is a plan on PR, applied only on merge, authenticated via OIDC.</p>
+            <p class="proof">Zero stored AWS keys &mdash; OIDC only, apply only on merge</p>
+            <ul class="pills"><li>Terraform</li><li>GitHub Actions</li><li>OIDC</li><li>AWS</li></ul>
+          </div>
+        </li>
+        <li class="item has-thumb">
+          <img class="thumb" loading="lazy" src="assets/thumbs/argocd-pipeline.jpg" alt="" width="150" height="94">
+          <div>
+            <p class="eyebrow-s">Kubernetes &middot; Decommissioned</p>
+            <h3><a href="argocd-pipeline/">GitOps deployment pipeline with ArgoCD<span class="arr" aria-hidden="true">&#8599;</span></a></h3>
+            <p>A cluster that reverts manual changes within seconds &mdash; Git is the only way anything gets in.</p>
+            <p class="proof">Manual drift reverted by self-heal within seconds</p>
+            <ul class="pills"><li>ArgoCD</li><li>Kustomize</li><li>Sealed Secrets</li><li>Renovate</li></ul>
+          </div>
+        </li>
+        <li class="item has-thumb">
+          <img class="thumb" loading="lazy" src="assets/thumbs/jenkins-argocd-gitops.jpg" alt="" width="150" height="94">
+          <div>
+            <p class="eyebrow-s">Kubernetes &middot; Local cluster</p>
+            <h3><a href="jenkins-argocd-gitops/">Jenkins CI handing off to ArgoCD<span class="arr" aria-hidden="true">&#8599;</span></a></h3>
+            <p>Two repos and one rule: CI commits an image tag to Git and never touches the cluster. ArgoCD is the only thing that deploys.</p>
+            <p class="proof">~2 min from manifest commit to 2/2 pods running</p>
+            <ul class="pills"><li>Jenkins</li><li>ArgoCD</li><li>Terraform</li><li>Docker</li></ul>
+          </div>
+        </li>
+        <li class="item has-thumb">
+          <img class="thumb" loading="lazy" src="assets/thumbs/delivery-scoreboard.jpg" alt="" width="150" height="94">
+          <div>
+            <p class="eyebrow-s">Observability &middot; Local script</p>
+            <h3><a href="delivery-scoreboard/">DORA delivery scoreboard with DuckDB<span class="arr" aria-hidden="true">&#8599;</span></a></h3>
+            <p>Four metrics computed in SQL; a fifth withheld until an AI classifier's labels pass an 18/20 accuracy gate.</p>
+            <p class="proof">AI-derived metric gated at &ge;18/20 &mdash; released at 20/20</p>
+            <ul class="pills"><li>Python</li><li>DuckDB</li><li>SQL</li><li>DORA</li></ul>
+          </div>
+        </li>
+      </ol>
+      <a class="more" href="#archive">See all 29 case studies <span aria-hidden="true">&rarr;</span></a>
+    </section>
+
+    <section id="archive" aria-label="All case studies">
+      <h2 class="sec-h">All 29 case studies</h2>
+      <p>Each one has an architecture diagram, a wiring table, a ledger of what was measured versus assumed, screenshots, and the failures worth keeping. The code lives in <a href="https://github.com/kingswanzy2020/Projects">the Projects repo</a> and the source repos it links to.</p>
+      <table class="archive">
+        <thead><tr><th>Area</th><th>Case study</th><th class="col-stack">Built with</th><th class="col-st">Status</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="dom">Kubernetes</td>
+            <td class="ttl"><a href="fastapi-react/">A FastAPI + React template, from compose to Kubernetes</a><small>Terraform, Ansible, one Helm chart and a pipeline around an existing app &mdash; then a broken release shipped on purpose, which never took traffic.</small></td>
+            <td class="col-stack"><ul class="pills"><li>Kubernetes</li><li>Helm</li><li>Terraform</li></ul></td>
+            <td class="st col-st">Decommissioned</td>
+          </tr>
+          <tr>
+            <td class="dom">Kubernetes</td>
+            <td class="ttl"><a href="eks/">Production application on Amazon EKS</a><small>A three-tier app on a two-node cluster &mdash; DNS, TLS, storage and autoscaling all provisioned by controllers, not by hand.</small></td>
+            <td class="col-stack"><ul class="pills"><li>Amazon EKS</li><li>Helm</li><li>cert-manager</li></ul></td>
+            <td class="st col-st">Decommissioned</td>
+          </tr>
+          <tr>
+            <td class="dom">Kubernetes</td>
+            <td class="ttl"><a href="gitops-5g-core/">A GitOps-driven 5G core on Kubernetes</a><small>Open5GS reconciled by an Operator from Git: a new network slice is a two-line commit, synced about two minutes later.</small></td>
+            <td class="col-stack"><ul class="pills"><li>ArgoCD</li><li>Operators</li><li>Open5GS</li></ul></td>
+            <td class="st col-st">Local cluster</td>
+          </tr>
+          <tr>
+            <td class="dom">Kubernetes</td>
+            <td class="ttl"><a href="argocd-pipeline/">GitOps deployment pipeline with ArgoCD</a><small>A cluster that reverts manual changes within seconds &mdash; Git is the only way anything gets in.</small></td>
+            <td class="col-stack"><ul class="pills"><li>ArgoCD</li><li>Kustomize</li><li>Sealed Secrets</li></ul></td>
+            <td class="st col-st">Decommissioned</td>
+          </tr>
+          <tr>
+            <td class="dom">Kubernetes</td>
+            <td class="ttl"><a href="jenkins-argocd-gitops/">Jenkins CI handing off to ArgoCD</a><small>Two repos and one rule: CI commits an image tag to Git and never touches the cluster. ArgoCD is the only thing that deploys.</small></td>
+            <td class="col-stack"><ul class="pills"><li>Jenkins</li><li>ArgoCD</li><li>Terraform</li></ul></td>
+            <td class="st col-st">Local cluster</td>
+          </tr>
+          <tr>
+            <td class="dom">Kubernetes</td>
+            <td class="ttl"><a href="helm-cicd-monitoring/">Kubernetes CI/CD with Helm and monitoring</a><small>A Jenkins pipeline that only passes when the rollout does, a reusable Helm chart, and an alert that waits two minutes before it fires.</small></td>
+            <td class="col-stack"><ul class="pills"><li>Helm</li><li>Jenkins</li><li>Prometheus</li></ul></td>
+            <td class="st col-st">Local cluster</td>
+          </tr>
+          <tr>
+            <td class="dom">Kubernetes</td>
+            <td class="ttl"><a href="eks-cluster-launch/">Launching an EKS cluster with eksctl</a><small>One command, two CloudFormation stacks, three nodes &mdash; then I terminated the nodes to watch them come back.</small></td>
+            <td class="col-stack"><ul class="pills"><li>Amazon EKS</li><li>eksctl</li><li>CloudFormation</li></ul></td>
+            <td class="st col-st">Guided lab</td>
+          </tr>
+          <tr>
+            <td class="dom">Kubernetes</td>
+            <td class="ttl"><a href="eks-backend-image/">Packaging a backend for EKS with ECR</a><small>A Flask API cloned, built and pushed to a private ECR repository &mdash; and the Docker permission fix done properly instead of with sudo.</small></td>
+            <td class="col-stack"><ul class="pills"><li>Docker</li><li>Amazon ECR</li><li>eksctl</li></ul></td>
+            <td class="st col-st">Guided lab</td>
+          </tr>
+          <tr>
+            <td class="dom">CI/CD</td>
+            <td class="ttl"><a href="jenkins-sonarqube/">Jenkins pipeline gated on SonarQube</a><small>Build, test, analyse, then containerise only if the quality gate passes &mdash; with Slack told either way.</small></td>
+            <td class="col-stack"><ul class="pills"><li>Jenkins</li><li>SonarQube</li><li>Maven</li></ul></td>
+            <td class="st col-st">Guided lab</td>
+          </tr>
+          <tr>
+            <td class="dom">CI/CD</td>
+            <td class="ttl"><a href="aws-cicd-pipeline/">A 7-day AWS-native CI/CD pipeline</a><small>CodeArtifact, CodeBuild, CodeDeploy and CloudFormation, one per day, joined into CodePipeline &mdash; including a rollback I broke on purpose.</small></td>
+            <td class="col-stack"><ul class="pills"><li>CodePipeline</li><li>CodeBuild</li><li>CodeDeploy</li></ul></td>
+            <td class="st col-st">Guided lab</td>
+          </tr>
+          <tr>
+            <td class="dom">CI/CD</td>
+            <td class="ttl"><a href="rag-semantic-ci/">Semantic tests for a RAG API in GitHub Actions</a><small>CI that fails when the knowledge base degrades, not just when the code does &mdash; made deterministic with a mock LLM mode.</small></td>
+            <td class="col-stack"><ul class="pills"><li>GitHub Actions</li><li>RAG</li><li>Semantic tests</li></ul></td>
+            <td class="st col-st">CI workflow</td>
+          </tr>
+          <tr>
+            <td class="dom">CI/CD</td>
+            <td class="ttl"><a href="ai-pr-review/">AI pull-request review with Gemini</a><small>Every PR gets a security review comment and a Critical / Warning / Good label before a human opens it.</small></td>
+            <td class="col-stack"><ul class="pills"><li>GitHub Actions</li><li>Gemini</li><li>github-script</li></ul></td>
+            <td class="st col-st">CI workflow</td>
+          </tr>
+          <tr>
+            <td class="dom">CI/CD</td>
+            <td class="ttl"><a href="github-actions-ci/">CI fundamentals with GitHub Actions</a><small>A pytest suite on every push and PR, a bug introduced on purpose to prove it bites, and an installable package as the artifact.</small></td>
+            <td class="col-stack"><ul class="pills"><li>GitHub Actions</li><li>pytest</li><li>Python</li></ul></td>
+            <td class="st col-st">CI workflow</td>
+          </tr>
+          <tr>
+            <td class="dom">IaC</td>
+            <td class="ttl"><a href="terraform-gitops/">Terraform GitOps pipeline on AWS</a><small>A five-module AWS stack where every change is a plan on PR, applied only on merge, authenticated via OIDC.</small></td>
+            <td class="col-stack"><ul class="pills"><li>Terraform</li><li>GitHub Actions</li><li>OIDC</li></ul></td>
+            <td class="st col-st">Decommissioned</td>
+          </tr>
+          <tr>
+            <td class="dom">IaC</td>
+            <td class="ttl"><a href="terraform-s3/">Terraform fundamentals: a locked-down S3 bucket</a><small>init, plan, apply &mdash; a private bucket, an ownership rule and an uploaded object, all from one main.tf.</small></td>
+            <td class="col-stack"><ul class="pills"><li>Terraform</li><li>Amazon S3</li></ul></td>
+            <td class="st col-st">Guided lab</td>
+          </tr>
+          <tr>
+            <td class="dom">AWS</td>
+            <td class="ttl"><a href="serverless-lead-capture/">Serverless lead capture at a real domain</a><small>S3, CloudFront and ACM in front; API Gateway, Lambda, SES and DynamoDB behind &mdash; no servers, run at kahmedt.com.</small></td>
+            <td class="col-stack"><ul class="pills"><li>Lambda</li><li>API Gateway</li><li>CloudFront</li></ul></td>
+            <td class="st col-st">Decommissioned</td>
+          </tr>
+          <tr>
+            <td class="dom">AWS</td>
+            <td class="ttl"><a href="iam-permissions-boundary/">An IAM permissions boundary as a role ceiling</a><small>The same widened policy, simulated before and after: CreatePolicyVersion goes from allowed to denied by the boundary. 8/8 predictions held.</small></td>
+            <td class="col-stack"><ul class="pills"><li>IAM</li><li>Policy simulator</li><li>AWS CLI</li></ul></td>
+            <td class="st col-st">Decommissioned</td>
+          </tr>
+          <tr>
+            <td class="dom">AWS</td>
+            <td class="ttl"><a href="three-tier-serverless/">A three-tier web architecture, serverless</a><small>CloudFront and a private bucket, API Gateway and Lambda, DynamoDB &mdash; each tier built and tested on its own.</small></td>
+            <td class="col-stack"><ul class="pills"><li>CloudFront</li><li>API Gateway</li><li>Lambda</li></ul></td>
+            <td class="st col-st">Guided lab</td>
+          </tr>
+          <tr>
+            <td class="dom">AWS</td>
+            <td class="ttl"><a href="cross-account-ecr/">Sharing container images across AWS accounts</a><small>Two accounts swap private ECR images and deploy each other's app on Elastic Beanstalk &mdash; through two layers of 403s.</small></td>
+            <td class="col-stack"><ul class="pills"><li>Amazon ECR</li><li>IAM</li><li>Elastic Beanstalk</li></ul></td>
+            <td class="st col-st">Guided lab</td>
+          </tr>
+          <tr>
+            <td class="dom">AWS</td>
+            <td class="ttl"><a href="iam-tag-based-access/">Tag-based least privilege with IAM</a><small>Developers control development-tagged EC2 and nothing else &mdash; tested as the user, then in the Policy Simulator.</small></td>
+            <td class="col-stack"><ul class="pills"><li>IAM</li><li>ABAC</li><li>EC2</li></ul></td>
+            <td class="st col-st">Guided lab</td>
+          </tr>
+          <tr>
+            <td class="dom">AWS</td>
+            <td class="ttl"><a href="elastic-beanstalk-docker/">A Docker app on Elastic Beanstalk</a><small>A three-line Dockerfile tested locally, live on a managed environment in about ten minutes, updated with one upload.</small></td>
+            <td class="col-stack"><ul class="pills"><li>Docker</li><li>Elastic Beanstalk</li></ul></td>
+            <td class="st col-st">Guided lab</td>
+          </tr>
+          <tr>
+            <td class="dom">AWS</td>
+            <td class="ttl"><a href="aurora-web-app/">A PHP app on EC2 writing to Amazon Aurora</a><small>An Aurora MySQL cluster wired to an EC2 web host, every write checked again from the MySQL CLI.</small></td>
+            <td class="col-stack"><ul class="pills"><li>Aurora MySQL</li><li>EC2</li><li>PHP</li></ul></td>
+            <td class="st col-st">Guided lab</td>
+          </tr>
+          <tr>
+            <td class="dom">AWS</td>
+            <td class="ttl"><a href="s3-static-website/">A static website on S3, access model and all</a><small>A 403 worked through properly, and a bucket policy that stops even me from deleting the index page.</small></td>
+            <td class="col-stack"><ul class="pills"><li>Amazon S3</li><li>Bucket policies</li></ul></td>
+            <td class="st col-st">Guided lab</td>
+          </tr>
+          <tr>
+            <td class="dom">AI &times; Ops</td>
+            <td class="ttl"><a href="ai-incident-response/">AI log analysis and incident response</a><small>Fluent Bit ships errors to a local LLM; each new error signature becomes one GitHub issue with a root cause and a kubectl fix.</small></td>
+            <td class="col-stack"><ul class="pills"><li>Fluent Bit</li><li>Ollama</li><li>Redis</li></ul></td>
+            <td class="st col-st">Local cluster</td>
+          </tr>
+          <tr>
+            <td class="dom">AI &times; Ops</td>
+            <td class="ttl"><a href="rag-api/">A RAG API from laptop to Kubernetes</a><small>FastAPI, Chroma and a local model; then a Docker image on Docker Hub; then a Minikube Deployment I killed to watch it come back.</small></td>
+            <td class="col-stack"><ul class="pills"><li>FastAPI</li><li>Chroma</li><li>Docker</li></ul></td>
+            <td class="st col-st">Local cluster</td>
+          </tr>
+          <tr>
+            <td class="dom">AI &times; Ops</td>
+            <td class="ttl"><a href="ai-security-scanner/">An AI security scanner for Python</a><small>Source in, severity-rated findings out &mdash; each with why it's vulnerable, the impact, and a secure rewrite.</small></td>
+            <td class="col-stack"><ul class="pills"><li>Python</li><li>Gemini</li><li>AppSec</li></ul></td>
+            <td class="st col-st">Local script</td>
+          </tr>
+          <tr>
+            <td class="dom">Observability</td>
+            <td class="ttl"><a href="delivery-scoreboard/">DORA delivery scoreboard with DuckDB</a><small>Four metrics computed in SQL; a fifth withheld until an AI classifier's labels pass an 18/20 accuracy gate.</small></td>
+            <td class="col-stack"><ul class="pills"><li>Python</li><li>DuckDB</li><li>SQL</li></ul></td>
+            <td class="st col-st">Local script</td>
+          </tr>
+          <tr>
+            <td class="dom">Observability</td>
+            <td class="ttl"><a href="grafana-mcp/">Grafana dashboards built through MCP</a><small>Six panels over PostgreSQL, described in plain language to an agent that drives Grafana's API.</small></td>
+            <td class="col-stack"><ul class="pills"><li>Grafana</li><li>MCP</li><li>PostgreSQL</li></ul></td>
+            <td class="st col-st">Local stack</td>
+          </tr>
+          <tr>
+            <td class="dom">Networking</td>
+            <td class="ttl"><a href="nginx-gateway/">An NGINX traffic gateway you can watch work</a><small>One process as gateway and two backends; balancing, a cache MISS&rarr;HIT and a deliberate 502, all in one access log.</small></td>
+            <td class="col-stack"><ul class="pills"><li>NGINX</li><li>Reverse proxy</li><li>Caching</li></ul></td>
+            <td class="st col-st">Local lab</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="certifications" aria-label="Certifications">
+      <h2 class="sec-h">Certifications</h2>
+      <div class="certs">
+        <div class="cert">
+          <span class="seal">CKA</span>
+          <div><h3>Certified Kubernetes Administrator</h3><p>Cloud Native Computing Foundation</p><a class="verify" href="https://www.credly.com/badges/8717d9d9-a9ab-422e-a463-54a24d626c1a/public_url">Verify on Credly &#8599;</a></div>
+        </div>
+        <div class="cert">
+          <span class="seal">SAA</span>
+          <div><h3>AWS Certified Solutions Architect &ndash; Associate</h3><p>Amazon Web Services</p><a class="verify" href="https://www.credly.com/badges/c33ee367-fc26-4d1a-acff-ef4eb7feb159/public_url">Verify on Credly &#8599;</a></div>
+        </div>
+        <div class="cert">
+          <span class="seal">CCP</span>
+          <div><h3>AWS Certified Cloud Practitioner</h3><p>Amazon Web Services</p><a class="verify" href="https://www.credly.com/badges/ac46a454-8d43-4b0a-ba08-f70c79a1c53b/public_url">Verify on Credly &#8599;</a></div>
+        </div>
+        <div class="cert plain">
+          <span class="seal">IBM</span>
+          <div><h3>Introduction to DevOps &middot; Linux Commands &amp; Shell Scripting</h3><p>IBM</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="contact" class="contact" aria-label="Contact">
+      <h2 class="sec-h">Contact</h2>
+      <p>If you need a Kubernetes platform stood up properly, a delivery pipeline untangled, or someone to make an on-call rotation quieter, I'd like to hear about it. The fastest way to reach me is email.</p>
+      <a class="btn" href="mailto:kingsleyswanzy@gmail.com">kingsleyswanzy@gmail.com</a>
+    </section>
+
+    <p class="foot">Hand-written HTML and CSS, hosted on GitHub Pages &mdash; no JavaScript, no framework, no build step for the pages themselves. Layout inspired by <a href="https://brittanychiang.com">Brittany Chiang</a>.</p>
+  </main>
 
 </div>
 </body>
