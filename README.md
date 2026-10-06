@@ -7,8 +7,8 @@ Static HTML and CSS — no JavaScript, no framework, nothing to build at serve t
   case-study archive, certifications (with Credly verification links) and contact.
 - `assets/site.css` — the one stylesheet every page uses (dark navy / teal).
   Diagram colours are the `--c-*` and `--dg-*` tokens at the top.
-- `assets/img/ahmed.jpg` — profile photo used by the avatar on every page.
-  Until it exists, the avatar shows the initials "AT".
+- `assets/img/ahmed.jpg` — profile photo (480×480) used by the avatar on every
+  page and as the link-preview image. If it's missing, the avatar shows "AT".
 - `assets/thumbs/` — diagram thumbnails for the "Selected work" list.
 - `<slug>/index.html` — one case study per directory. Each has the same
   sections: spec sheet, numbered architecture diagram, wiring table and legend,
