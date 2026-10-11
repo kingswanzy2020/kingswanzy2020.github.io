@@ -147,6 +147,10 @@ EXPERIENCE = [
          sub="Intelligent Antenna &amp; Radar Sensing Lab &middot; Daejeon, South Korea",
          body="<ul><li>Designed and optimised complex telecommunications systems with systematic, data-driven methods.</li><li>Diagnosed failures across RF hardware, instrumentation and software toolchains &mdash; isolating one layer at a time, the same method I use on distributed systems.</li><li>Worked with international, multidisciplinary teams across time zones; wrote the documentation and presented findings to faculty and external stakeholders.</li></ul>",
          tags=["Research", "Instrumentation", "Debugging", "Technical writing"]),
+    dict(when="2021 &mdash; 2022", title="Software Developer", co="Luxstek Ltd", url="https://dort-blog.web.app/",
+         sub="Software development &middot; Accra, Ghana",
+         body="<ul><li>Worked with a small development team to build client applications, including Escuzy, a school management mobile app for attendance, timetables, course materials and student performance tracking.</li><li>Helped code app features and turn UI designs into working screens, focusing on clean, reusable code the team could build on.</li><li>Helped gather client feedback and turn it into feature updates, agreeing with senior developers on what to build.</li><li>Tested features, fixed bugs, and helped keep the shared codebase organised and maintained with Git.</li></ul>",
+         tags=["Mobile apps", "UI implementation", "Git", "Testing &amp; bug fixing"]),
     dict(when="2020 &mdash; 2021", title="Network Systems Engineer", co="K-NET Limited",
          sub="Telecommunications infrastructure &middot; Accra, Ghana",
          body="<ul><li>Deployed and maintained production network infrastructure for enterprise clients across distributed sites, sustaining 99% service availability.</li><li>Managed infrastructure releases and configuration changes; carried on-call production support with root-cause analysis &mdash; an SRE rotation before I knew to call it that.</li><li>Configured IP addressing, subnetting, VLAN segmentation and OSPF/BGP routing, and integrated IoT devices for remote fuel-level monitoring across sites.</li></ul>",
@@ -178,7 +182,7 @@ def landing(cat, ordered):
         exp.append(f"""        <li class="item">
           <div class="when">{e['when']}</div>
           <div>
-            <h3>{e['title']} <span class="co">&middot; {e['co']}</span></h3>
+            <h3>{e['title']} <span class="co">&middot; {f'<a href="{e["url"]}">{e["co"]}<span class="arr" aria-hidden="true">&#8599;</span></a>' if e.get('url') else e['co']}</span></h3>
             <p class="sub">{e['sub']}</p>
             {e['body']}
             {pills(e['tags'])}
@@ -271,7 +275,7 @@ def landing(cat, ordered):
     <section id="about" class="about" aria-label="About">
       <h2 class="sec-h only-mobile">About</h2>
       <p>&#128075; Hi, I'm Ahmed &mdash; a DevOps and platform engineer based in Daejeon, South Korea. Right now I'm freelancing, taking on <strong>SRE, platform and DevOps-AI</strong> work: Kubernetes clusters, GitOps and Terraform pipelines on AWS, observability, and tooling that lets an LLM help during an incident without being trusted blindly.</p>
-      <p>I came to this through networks. My first engineering job was keeping production network infrastructure up for enterprise clients in Ghana &mdash; releases, on-call and root-cause analysis, before I knew to call it SRE. Then I moved to Korea for an MSc in telecommunications and spent two years as a research assistant in a radar-sensing lab, where debugging RF hardware one layer at a time turned out to be excellent practice for debugging distributed systems.</p>
+      <p>I came to this through networks. My first engineering job was keeping production network infrastructure up for enterprise clients in Ghana &mdash; releases, on-call and root-cause analysis, before I knew to call it SRE. After that I spent a year as a software developer at Luxstek, building client apps in a small team, which is where I learned to live in a shared codebase. Then I moved to Korea for an MSc in telecommunications and spent two years as a research assistant in a radar-sensing lab, where debugging RF hardware one layer at a time turned out to be excellent practice for debugging distributed systems.</p>
       <p>I'm a <a href="{CERTS[0]['url']}">Certified Kubernetes Administrator</a> and an <a href="{CERTS[1]['url']}">AWS Solutions Architect &ndash; Associate</a>. Every project on this page is written up the same way: what I built, what I <em>measured</em>, what I only <em>observed</em>, what holds only <em>by design</em> &mdash; and what broke. I'd rather show you the 403s than pretend they didn't happen.</p>
       <p>I'm open to freelance engagements and full-time roles, remote or with relocation.</p>
     </section>
